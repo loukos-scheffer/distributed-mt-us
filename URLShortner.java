@@ -127,15 +127,15 @@ public class URLShortner {
           return;
         }
 
-        Pattern setpartitionput = Pattern.compile(
+        Pattern setbackupput = Pattern.compile(
           "^PUT\\s+/set-backup\\?id=(\\S+)\\?short=(\\S+)&long=(\\S+)\\s+(\\S+)$"
         );
-        Matcher setpartitionmput = setpartitionput.matcher(input);
-        if (setpartitionmput.matches()) {
-          String partitionID = setpartitionmput.group(1);
-          String shortResource = setpartitionmput.group(2);
-          String longResource = setpartitionmput.group(3);
-          String httpVersion = setpartitionmput.group(4);
+        Matcher setbackupmput = setbackupput.matcher(input);
+        if (setbackupmput.matches()) {
+          String partitionID = setbackupmput.group(1);
+          String shortResource = setbackupmput.group(2);
+          String longResource = setbackupmput.group(3);
+          String httpVersion = setbackupmput.group(4);
           if (Integer.parseInt(partitionID) == 1) {
             save(shortResource, longResource); //TODO: SAVE TO CORRECT DB
           } else if (Integer.parseInt(partitionID) == 2) {
