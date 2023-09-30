@@ -32,11 +32,11 @@ public class URLShortner {
   // port to listen connection
   static final int PORT = 59958;
 
-  public static String PARTITION_1_NAME = 'part1';
-  public static String PARTITION_1_BACKUP_HOST = 'dh2026pc12:59958/';
+  public static String PARTITION_1_NAME = "part1";
+  public static String PARTITION_1_BACKUP_HOST = "dh2026pc12:59958/";
 
-  public static String PARTITION_2_NAME = 'part2';
-  public static String PARTITION_2_BACKUP_HOST = 'dh2026pc12:59958/';
+  public static String PARTITION_2_NAME = "part2";
+  public static String PARTITION_2_BACKUP_HOST = "dh2026pc12:59958/";
 
   // verbose mode
   static final boolean verbose = true;
