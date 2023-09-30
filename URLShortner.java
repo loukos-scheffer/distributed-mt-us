@@ -31,9 +31,10 @@ public class URLShortner {
   static final String DATABASE = "database.txt";
   // port to listen connection
   static final int PORT = 59958;
+  public static int NUM_CONNECTIONS = 0;
 
   // verbose mode
-  static final boolean verbose = false;
+  static final boolean verbose = true;
 
   public static void main(String[] args) {
     try {
@@ -49,7 +50,8 @@ public class URLShortner {
         if (verbose) {
           System.out.println("Connecton opened. (" + new Date() + ")");
         }
-        HandleShortenRequestWorker worker = new HandleShortenRequestWorker(
+		System.out.println("NUMBER OF CONNECTION: " + NUM_CONNECTIONS)
+        HandleRequestWorker worker = new HandleRequestWorker(
           serverConnect.accept()
         );
         new Thread(worker).start();
@@ -59,11 +61,11 @@ public class URLShortner {
     }
   }
 
-  private static class HandleShortenRequestWorker implements Runnable {
+  private static class HandleRequestWorker implements Runnable {
 
     private Socket connectionSocket;
 
-    public HandleShortenRequestWorker(Socket connection) {
+    public HandleRequestWorker(Socket connection) {
       this.connectionSocket = connection;
     }
 
@@ -72,6 +74,7 @@ public class URLShortner {
       BufferedReader in = null;
       PrintWriter out = null;
       BufferedOutputStream dataOut = null;
+	  NUM_CONNECTIONS += 1;
 
       try {
         in =
