@@ -32,11 +32,11 @@ public class URLShortner {
   // port to listen connection
   static final int PORT = 59958;
 
-  public static String PARTITION_1_IDENTIFIER = null;
-  public static String PARTITION_1_HOST = null;
+  public static String PARTITION_1_NAME = null;
+  public static String PARTITION_1_BACKUP_HOST = null;
 
-  public static String PARTITION_2_IDENTIFIER = null;
-  public static String PARTITION_2_HOST = null;
+  public static String PARTITION_2_NAME = null;
+  public static String PARTITION_2_BACKUP_HOST = null;
 
   // verbose mode
   static final boolean verbose = true;
@@ -54,6 +54,8 @@ public class URLShortner {
       while (true) {
         if (verbose) {
           System.out.println("Connecton opened. (" + new Date() + ")");
+		  System.out.println(PARTITION_1_NAME + " " PARTITION_1_BACKUP_HOST);
+		  System.out.println(PARTITION_2_NAME + " " PARTITION_2_BACKUP_HOST);
         }
         HandleRequestWorker worker = new HandleRequestWorker(
           serverConnect.accept()
@@ -90,14 +92,21 @@ public class URLShortner {
         if (verbose) System.out.println("first line: " + input);
 
 		Pattern backupput = Pattern.compile(
-			"^PUT\\s+/set-partition\\?id=(\\S+)&host=(\\S+)\\s+(\\S+)$"
+			"^PUT\\s+/set-partition\\?id=(\\S+)?name=(\\S+)&host=(\\S+)\\s+(\\S+)$"
         );
 		Matcher backupmput = backupput.matcher(input);
 		if (backupmput.matches()) {
 			String partitionID = backupmput.group(1);
-			String host = backupmput.group(2);
-			String httpVersion = backupmput.group(3);
-			System.out.println("MATCH SET-BACKUP: ID: " + partitionID + " HOST: " + host);
+			String partitionName = backupmput.group(2);
+			String host = backupmput.group(3);
+			String httpVersion = backupmput.group(4);
+			if(Integer.parseInt(partitionID) == 1) {
+				PARTITION_1_NAME = partitionName;
+				PARTITION_1_BACKUP_HOST = host;
+			} else if(Integer.parseInt(partitionID) == 2) {
+				PARTITION_2_NAME = partitionName;
+				PARTITION_2_BACKUP_HOST = host;
+			}
 			return;
 		}
 		
