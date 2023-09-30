@@ -30,7 +30,7 @@ public class URLShortner {
   static final String NOT_FOUND = "notfound.html";
   static final String DATABASE = "database.txt";
   // port to listen connection
-  static final int PORT = 8080;
+  static final int PORT = 59958;
 
   // verbose mode
   static final boolean verbose = false;
