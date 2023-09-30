@@ -31,7 +31,12 @@ public class URLShortner {
   static final String DATABASE = "database.txt";
   // port to listen connection
   static final int PORT = 59958;
-  public static int NUM_CONNECTIONS = 0;
+
+  public static String PARTITION_1_IDENTIFIER = '';
+  public static String PARTITION_1_HOST = '';
+
+  public static String PARTITION_2_IDENTIFIER = '';
+  public static String PARTITION_2_HOST = '';
 
   // verbose mode
   static final boolean verbose = true;
@@ -50,7 +55,6 @@ public class URLShortner {
         if (verbose) {
           System.out.println("Connecton opened. (" + new Date() + ")");
         }
-		System.out.println("NUMBER OF CONNECTION: " + NUM_CONNECTIONS);
         HandleRequestWorker worker = new HandleRequestWorker(
           serverConnect.accept()
         );
@@ -74,7 +78,6 @@ public class URLShortner {
       BufferedReader in = null;
       PrintWriter out = null;
       BufferedOutputStream dataOut = null;
-	  NUM_CONNECTIONS += 1;
 
       try {
         in =
@@ -87,12 +90,14 @@ public class URLShortner {
         if (verbose) System.out.println("first line: " + input);
 
 		Pattern backupput = Pattern.compile(
-			"^PUT\\s+/\\?short=(\\S+)&long=(\\S+)\\s+(\\S+)$"
+			"^PUT\\s+/set-partition\\?id=(\\S+)&host=(\\S+)\\s+(\\S+)$"
         );
 		Matcher backupmput = backupput.matcher(input);
-		System.out.println("MATCHES: " + backupmput.matches());
 		if (backupmput.matches()) {
-			System.out.println("MATCH SET-BACKUP");
+			String partitionID = mput.group(1);
+			String host = mput.group(2);
+			String httpVersion = mput.group(3);
+			System.out.println("MATCH SET-BACKUP: " + partitionID + " " + host);
 			return;
 		}
 		
