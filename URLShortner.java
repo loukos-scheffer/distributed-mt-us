@@ -86,11 +86,11 @@ public class URLShortner {
 
         if (verbose) System.out.println("first line: " + input);
 
-		Pattern pput = Pattern.compile(
+		Pattern backupput = Pattern.compile(
           "^PUT\\s+/\\set-backup?short=(\\S+)&long=(\\S+)\\s+(\\S+)$"
         );
-		Matcher mput = pput.matcher(input);
-		if (mput.matches()) {
+		Matcher backupmput = backupput.matcher(input);
+		if (backupmput.matches()) {
 			System.out.println("MATCH SET-BACKUP");
 			return;
 		}
