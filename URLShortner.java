@@ -236,7 +236,7 @@ public class URLShortner {
           }
         }
       } catch (Exception e) {
-        System.err.println("Server error");
+        System.err.println("Server error " + e.getMessage());
       } finally {
         try {
           in.close();
