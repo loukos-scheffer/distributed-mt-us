@@ -18,6 +18,11 @@ import java.util.Date;
 import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.net.http.*;
+import java.net.URI;
+import java.time.Duration;
+
+
 
 public class URLShortner {
 
@@ -32,8 +37,14 @@ public class URLShortner {
   // port to listen connection
   static final int PORT = 59958;
 
+  public static String PARTITION_1_NAME = "part1";
+  public static String PARTITION_1_BACKUP_HOST = "http://dh2026pc12:59958/";
+
+  public static String PARTITION_2_NAME = "part2";
+  public static String PARTITION_2_BACKUP_HOST = "http://dh2026pc12:59958/";
+
   // verbose mode
-  static final boolean verbose = false;
+  static final boolean verbose = true;
 
   public static void main(String[] args) {
     try {
@@ -48,8 +59,20 @@ public class URLShortner {
       while (true) {
         if (verbose) {
           System.out.println("Connecton opened. (" + new Date() + ")");
+          System.out.println(
+            "PARTITION 1 NAME, BACKUP_HOST: " +
+            PARTITION_1_NAME +
+            " " +
+            PARTITION_1_BACKUP_HOST
+          );
+          System.out.println(
+            "PARTITION 2 NAME, BACKUP_HOST: " +
+            PARTITION_2_NAME +
+            " " +
+            PARTITION_2_BACKUP_HOST
+          );
         }
-        HandleShortenRequestWorker worker = new HandleShortenRequestWorker(
+        HandleRequestWorker worker = new HandleRequestWorker(
           serverConnect.accept()
         );
         new Thread(worker).start();
@@ -59,11 +82,11 @@ public class URLShortner {
     }
   }
 
-  private static class HandleShortenRequestWorker implements Runnable {
+  private static class HandleRequestWorker implements Runnable {
 
     private Socket connectionSocket;
 
-    public HandleShortenRequestWorker(Socket connection) {
+    public HandleRequestWorker(Socket connection) {
       this.connectionSocket = connection;
     }
 
@@ -82,6 +105,52 @@ public class URLShortner {
         String input = in.readLine();
 
         if (verbose) System.out.println("first line: " + input);
+
+        Pattern setpartitionput = Pattern.compile(
+          "^PUT\\s+/set-partition\\?id=(\\S+)\\?name=(\\S+)&host=(\\S+)\\s+(\\S+)$"
+        );
+        Matcher setpartitionmput = setpartitionput.matcher(input);
+        if (setpartitionmput.matches()) {
+          System.out.println("SET PARTITION MATCH");
+          String partitionID = setpartitionmput.group(1);
+          String partitionName = setpartitionmput.group(2);
+          String host = setpartitionmput.group(3);
+          String httpVersion = setpartitionmput.group(4);
+          if (Integer.parseInt(partitionID) == 1) {
+            PARTITION_1_NAME = partitionName;
+            PARTITION_1_BACKUP_HOST = host;
+          } else if (Integer.parseInt(partitionID) == 2) {
+            PARTITION_2_NAME = partitionName;
+            PARTITION_2_BACKUP_HOST = host;
+          }
+          out.println("HTTP/1.1 200 OK");
+          out.println();
+          out.flush();
+          return;
+        }
+
+        Pattern setbackupput = Pattern.compile(
+          "^PUT\\s+/set-backup\\?id=(\\S+)\\?short=(\\S+)&long=(\\S+)\\s+(\\S+)$"
+        );
+        Matcher setbackupmput = setbackupput.matcher(input);
+        if (setbackupmput.matches()) {
+          String partitionID = setbackupmput.group(1);
+          String shortResource = setbackupmput.group(2);
+          String longResource = setbackupmput.group(3);
+          String httpVersion = setbackupmput.group(4);
+		  System.out.println("SAVING TO PARTITON: " + partitionID);
+		  System.out.println("SAVING BACKUP: " + shortResource + " " + longResource);
+          if (Integer.parseInt(partitionID) == 1) {
+            save(shortResource, longResource); //TODO: SAVE TO CORRECT DB
+          } else if (Integer.parseInt(partitionID) == 2) {
+            save(shortResource, longResource);
+          }
+          out.println("HTTP/1.1 200 OK");
+          out.println();
+          out.flush();
+          return;
+        }
+
         Pattern pput = Pattern.compile(
           "^PUT\\s+/\\?short=(\\S+)&long=(\\S+)\\s+(\\S+)$"
         );
@@ -92,6 +161,17 @@ public class URLShortner {
           String httpVersion = mput.group(3);
 
           save(shortResource, longResource);
+
+          HttpClient client = HttpClient
+            .newBuilder()
+            .connectTimeout(Duration.ofSeconds(10))
+            .build();
+          HttpRequest req = HttpRequest
+            .newBuilder()
+            .uri(URI.create(PARTITION_1_BACKUP_HOST + "set-backup?id=1?short=test&long=https://www.google.ca/"))
+            .PUT(HttpRequest.BodyPublishers.noBody())
+            .build();
+          client.send(req, HttpResponse.BodyHandlers.ofString()).body();
 
           File file = new File(WEB_ROOT, REDIRECT_RECORDED);
           int fileLength = (int) file.length();
@@ -158,7 +238,7 @@ public class URLShortner {
           }
         }
       } catch (Exception e) {
-        System.err.println("Server error");
+        System.err.println("Server error " + e.getMessage());
       } finally {
         try {
           in.close();
