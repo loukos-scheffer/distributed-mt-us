@@ -20,20 +20,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class URLShortner { 
-	
-	static final File WEB_ROOT = new File(".");
-	static final String DEFAULT_FILE = "index.html";
-	static final String FILE_NOT_FOUND = "404.html";
-	static final String METHOD_NOT_SUPPORTED = "not_supported.html";
-	static final String REDIRECT_RECORDED = "redirect_recorded.html";
-	static final String REDIRECT = "redirect.html";
-	static final String NOT_FOUND = "notfound.html";
-	static final String DATABASE = "database.txt";
 	// port to listen connection
 	static final int PORT = 8080;
 	
 	// verbose mode
-	static final boolean verbose = false;
+	static final boolean verbose = true;
 
 	public static void main(String[] args) {
 		try {
@@ -54,6 +45,17 @@ public class URLShortner {
 
 private static class HandleShortenRequestWorker implements Runnable {
 	private Socket connectionSocket;
+	static final File WEB_ROOT = new File(".");
+	static final String DEFAULT_FILE = "index.html";
+	static final String FILE_NOT_FOUND = "404.html";
+	static final String METHOD_NOT_SUPPORTED = "not_supported.html";
+	static final String REDIRECT_RECORDED = "redirect_recorded.html";
+	static final String REDIRECT = "redirect.html";
+	static final String NOT_FOUND = "notfound.html";
+	static final String DATABASE = "database.txt";
+	// verbose mode
+	static final boolean verbose = true;
+
 	public HandleShortenRequestWorker(Socket connection) {
 		this.connectionSocket = connection;
 	}
