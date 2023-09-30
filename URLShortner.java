@@ -108,6 +108,9 @@ public class URLShortner {
 				PARTITION_2_NAME = partitionName;
 				PARTITION_2_BACKUP_HOST = host;
 			}
+			out.println("HTTP/1.1 200 OK");
+			out.println();
+          	out.flush();
 			return;
 		}
 		
