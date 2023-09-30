@@ -54,8 +54,8 @@ public class URLShortner {
       while (true) {
         if (verbose) {
           System.out.println("Connecton opened. (" + new Date() + ")");
-		  System.out.println(PARTITION_1_NAME + " " PARTITION_1_BACKUP_HOST);
-		  System.out.println(PARTITION_2_NAME + " " PARTITION_2_BACKUP_HOST);
+		  System.out.println(PARTITION_1_NAME + " " + PARTITION_1_BACKUP_HOST);
+		  System.out.println(PARTITION_2_NAME + " " + PARTITION_2_BACKUP_HOST);
         }
         HandleRequestWorker worker = new HandleRequestWorker(
           serverConnect.accept()
