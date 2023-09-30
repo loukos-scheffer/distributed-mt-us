@@ -138,6 +138,8 @@ public class URLShortner {
           String shortResource = setbackupmput.group(2);
           String longResource = setbackupmput.group(3);
           String httpVersion = setbackupmput.group(4);
+		  System.out.println("SAVING TO PARTITON: " + partitionID);
+		  System.out.println("SAVING BACKUP: " + shortResource + " " + longResource);
           if (Integer.parseInt(partitionID) == 1) {
             save(shortResource, longResource); //TODO: SAVE TO CORRECT DB
           } else if (Integer.parseInt(partitionID) == 2) {
@@ -166,7 +168,7 @@ public class URLShortner {
             .build();
           HttpRequest req = HttpRequest
             .newBuilder()
-            .uri(URI.create(PARTITION_1_BACKUP_HOST + "/?short=test&long=https://www.google.ca/"))
+            .uri(URI.create(PARTITION_1_BACKUP_HOST + "/set-backup?id=1?short=test&long=https://www.google.ca/"))
             .PUT(HttpRequest.BodyPublishers.noBody())
             .build();
           client.send(req, HttpResponse.BodyHandlers.ofString()).body();
