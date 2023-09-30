@@ -168,7 +168,7 @@ public class URLShortner {
             .build();
           HttpRequest req = HttpRequest
             .newBuilder()
-            .uri(URI.create(PARTITION_1_BACKUP_HOST + "/set-backup?id=1?short=test&long=https://www.google.ca/"))
+            .uri(URI.create(PARTITION_1_BACKUP_HOST + "set-backup?id=1?short=test&long=https://www.google.ca/"))
             .PUT(HttpRequest.BodyPublishers.noBody())
             .build();
           client.send(req, HttpResponse.BodyHandlers.ofString()).body();
