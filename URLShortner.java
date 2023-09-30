@@ -94,10 +94,10 @@ public class URLShortner {
         );
 		Matcher backupmput = backupput.matcher(input);
 		if (backupmput.matches()) {
-			String partitionID = mput.group(1);
-			String host = mput.group(2);
-			String httpVersion = mput.group(3);
-			System.out.println("MATCH SET-BACKUP: " + partitionID + " " + host);
+			String partitionID = backupmput.group(1);
+			String host = backupmput.group(2);
+			String httpVersion = backupmput.group(3);
+			System.out.println("MATCH SET-BACKUP: ID: " + partitionID + " HOST: " + host);
 			return;
 		}
 		
