@@ -43,14 +43,23 @@ public class URLShortner {
 			// we listen until user halts server execution
 			while (true) {
 				if (verbose) { System.out.println("Connecton opened. (" + new Date() + ")"); }
-				handle(serverConnect.accept());
+				HandleShortenRequestWorker worker = new HandleShortenRequestWorker(serverConnect.accept());
+				new Thread(worker).start();
 			}
 		} catch (IOException e) {
 			System.err.println("Server Connection error : " + e.getMessage());
 		}
 	}
+}
 
-	public static void handle(Socket connect) {
+private static class HandleShortenRequestWorker implements Runnable {
+	private Socket connectionSocket;
+	public HandleShortenRequestWorker(Socket connection) {
+		this.connectionSocket = connection;
+	}
+
+	public void run(){
+		Socket connect = this.connectionSocket;
 		BufferedReader in = null; PrintWriter out = null; BufferedOutputStream dataOut = null;
 		
 		try {
@@ -150,7 +159,7 @@ public class URLShortner {
 		}
 	}
 
-	private static String find(String shortURL){
+		private static String find(String shortURL){
 		String longURL = null;
 		try {
 			File file = new File(DATABASE);
