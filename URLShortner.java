@@ -50,7 +50,7 @@ public class URLShortner {
         if (verbose) {
           System.out.println("Connecton opened. (" + new Date() + ")");
         }
-		System.out.println("NUMBER OF CONNECTION: " + NUM_CONNECTIONS)
+		System.out.println("NUMBER OF CONNECTION: " + NUM_CONNECTIONS);
         HandleRequestWorker worker = new HandleRequestWorker(
           serverConnect.accept()
         );
