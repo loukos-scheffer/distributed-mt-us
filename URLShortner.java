@@ -96,6 +96,7 @@ public class URLShortner {
         );
 		Matcher backupmput = backupput.matcher(input);
 		if (backupmput.matches()) {
+			System.out.println("SET PARTITION MATCH");
 			String partitionID = backupmput.group(1);
 			String partitionName = backupmput.group(2);
 			String host = backupmput.group(3);
