@@ -22,6 +22,8 @@ import java.net.http.*;
 import java.net.URI;
 import java.time.Duration;
 
+
+
 public class URLShortner {
 
   static final File WEB_ROOT = new File(".");
@@ -35,80 +37,12 @@ public class URLShortner {
   // port to listen connection
   static final int PORT = 59958;
 
-				File file = new File(WEB_ROOT, REDIRECT_RECORDED);
-				int fileLength = (int) file.length();
-				String contentMimeType = "text/html";
-				//read content to return to client
-				byte[] fileData = readFileData(file, fileLength);
-					
-				out.println("HTTP/1.1 200 OK");
-				out.println("Server: Java HTTP Server/Shortner : 1.0");
-				out.println("Date: " + new Date());
-				out.println("Content-type: " + contentMimeType);
-				out.println("Content-length: " + fileLength);
-				out.println(); 
-				out.flush(); // 
   public static String PARTITION_1_NAME = "part1";
   public static String PARTITION_1_BACKUP_HOST = "http://dh2026pc12:59958/";
 
   public static String PARTITION_2_NAME = "part2";
   public static String PARTITION_2_BACKUP_HOST = "http://dh2026pc12:59958/";
 
-					String longResource = find(shortResource);
-					if(longResource!=null){
-						File file = new File(WEB_ROOT, REDIRECT);
-						int fileLength = (int) file.length();
-						String contentMimeType = "text/html";
-	
-						//read content to return to client
-						byte[] fileData = readFileData(file, fileLength);
-						
-						out.println("HTTP/1.1 307 Temporary Redirect");
-						out.println("Location: "+longResource);
-						out.println("Server: Java HTTP Server/Shortner : 1.0");
-						out.println("Date: " + new Date());
-						out.println("Content-type: " + contentMimeType);
-						out.println("Content-length: " + fileLength);
-						out.println(); 
-						out.flush(); 
-	
-						dataOut.write(fileData, 0, fileLength);
-						dataOut.flush();
-					} else {
-						File file = new File(WEB_ROOT, FILE_NOT_FOUND);
-						int fileLength = (int) file.length();
-						String content = "text/html";
-						byte[] fileData = readFileData(file, fileLength);
-						
-						out.println("HTTP/1.1 404 File Not Found");
-						out.println("Server: Java HTTP Server/Shortner : 1.0");
-						out.println("Date: " + new Date());
-						out.println("Content-type: " + content);
-						out.println("Content-length: " + fileLength);
-						out.println(); 
-						out.flush(); 
-						
-						dataOut.write(fileData, 0, fileLength);
-						dataOut.flush();
-					}
-				}
-			}
-		} catch (Exception e) {
-			System.err.println("Server error");
-		} finally {
-			try {
-				in.close();
-				out.close();
-				connect.close(); // we close socket connection
-			} catch (Exception e) {
-				System.err.println("Error closing stream : " + e.getMessage());
-			} 
-			
-			if (verbose) {
-				System.out.println("Connection closed.\n");
-			}
-		}
-	}
   // verbose mode
   static final boolean verbose = true;
 
