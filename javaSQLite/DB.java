@@ -20,10 +20,11 @@ public class DB {
 			   
     	public static void main(String[] args) {
 		String url = args[0];
-		write(url);
+		write(url, "short.url/abc", "thisisaverylongurl.com/abcdef");
 		read(url);
+		getLongURL(url, "short.url/abc");
 	}
-	public static void write(String url) {
+	public static void write(String url, String shortURL, String longURL) {
 		Connection conn=null;
 		try {
 			conn = connect(url);
@@ -39,11 +40,31 @@ public class DB {
  			Statement stmt  = conn.createStatement();
 			stmt.executeUpdate(sql);
 
-			String insertSQL = "INSERT INTO urls (shortURL, longURL) VALUES (?, ?)";
-			PreparedStatement ps = conn.prepareStatement(insertSQL);
-			for(int i=0;i<100000;i++){
-				ps.setString(1, "left thing "+i);
-				ps.setInt(2, i);
+			// check to see if key is already in the DB
+			boolean inDB = false;
+			String checkSQL = "SELECT shortURL, longURL FROM urls where shortURL = (?)";
+			PreparedStatement ps = conn.prepareStatement(checkSQL);
+			ps.setString(1, shortURL);
+			ResultSet rs = ps.executeQuery();
+			if (rs.next()){
+				inDB = true;
+			}
+
+			// if its not then add it
+			if (!inDB){ 
+				String insertSQL = "INSERT INTO urls (shortURL, longURL) VALUES (?, ?)";
+				ps = conn.prepareStatement(insertSQL);
+				ps.setString(1, shortURL);
+				ps.setString(2, longURL);
+				ps.execute();
+			}
+			// if it is then update the 
+			else {
+				String updateSQL = "UPDATE urls SET shortURL = (?), longURL = (?) WHERE shortURL = (?);";
+				ps = conn.prepareStatement(updateSQL);
+				ps.setString(1, shortURL);
+				ps.setString(2, longURL);
+				ps.setString(3, shortURL);
 				ps.execute();
 			}
 		} catch (SQLException e) {
@@ -68,7 +89,6 @@ public class DB {
 			int count = 0;
 			while (rs.next()) {
 				count ++;
-				// System.out.println( rs.getString("leftside") + "\t" + rs.getInt("rightside") );
 			}
 			System.out.println(count);
 		} catch (SQLException e) {
@@ -88,8 +108,10 @@ public class DB {
 		try {
 			conn = connect(DBurl);
 			Statement stmt  = conn.createStatement();
-			String sql = "SELECT shortURL, longURL FROM urls where shortURL = " + queryURL;
-			ResultSet rs = stmt.executeQuery(sql);
+			String sql = "SELECT shortURL, longURL FROM urls where shortURL = (?);";
+			PreparedStatement ps = conn.prepareStatement(sql);
+			ps.setString(1, queryURL);
+			ResultSet rs = ps.executeQuery();
 			int count = 0;
 			String[] pairing = new String[2];
 			while (rs.next()){
@@ -115,7 +137,28 @@ public class DB {
             		} catch (SQLException ex) {
                 		System.out.println(ex.getMessage());
             		}
-			return null;
+					return null;
+		}
+	}
+	public static void delete(String DBurl, String queryURL) {
+		Connection conn=null;
+		try {
+			conn = connect(DBurl);
+			Statement stmt  = conn.createStatement();
+			String insertSQL = "DELETE FROM urls WHERE shortURL = (?);";
+			PreparedStatement ps = conn.prepareStatement(insertSQL);
+			ps.setString(1, queryURL);
+			ps.execute();
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+        	} finally {
+            		try {
+                		if (conn != null) {
+                    			conn.close();
+                		}
+            		} catch (SQLException ex) {
+                		System.out.println(ex.getMessage());
+					}
 		}
 	}
 }
