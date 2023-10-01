@@ -7,10 +7,12 @@ import java.util.regex.*;
 
 public class RequestHandler implements Runnable {
 
-    private Socket client;
+    private final Socket client;
+    private final PrintWriter log;
 
-    public RequestHandler(Socket client) {
+    public RequestHandler(Socket client, PrintWriter log) {
         this.client = client;
+        this.log = log;
     }
 
     public void run() {
@@ -21,14 +23,15 @@ public class RequestHandler implements Runnable {
             char[] reply = new char[4096];
 
             String hostname = null;
-            int portNum = -1;
+            int portnum = -1;
             int bytesRead = 0;
 
+            
             try (BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
                  PrintWriter out = new PrintWriter(client.getOutputStream(), true)) {
 
-                // Process client request to determine target
 
+                // Process client request to determine target
                 String shortResource = null;
                 
                 int partId;
@@ -62,39 +65,44 @@ public class RequestHandler implements Runnable {
                     System.err.print("Could not extract short from client request");
                 }
 
-                partId = ServerStarter.requestHash.hashDJB2(shortResource);
-                
+                partId = ProxyServer.requestHash.hashDJB2(shortResource);
                 targets = ProxyServer.targetsByPart.get(partId);
                 
                 randIndex = ThreadLocalRandom.current().nextInt(0, targets.size());
                 
                 targetInfo = targets.get(randIndex).split(":", 2);
-                // System.out.format("randIndex %d targets.get(randIndex) %s %n", randIndex, targets.get(randIndex));
-                
-                hostname = targetInfo[0];
-                portNum = Integer.parseInt(targetInfo[1]);
 
-                if (hostname == null || portNum < 0) {
+                hostname = targetInfo[0];
+                portnum = Integer.parseInt(targetInfo[1]);
+
+                if (hostname == null || portnum < 0) {
                     System.err.println("Could not obtain hostname or portnum for target");
                     return;
                 }
 
                 // Forward the request to the server, and wait for the response
-                try (Socket server = new Socket(hostname, portNum);
+                try (Socket server = new Socket(hostname, portnum);
                      BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(server.getOutputStream()));
                      BufferedReader reader = new BufferedReader(new InputStreamReader(server.getInputStream()));
                     ) {
                     
-                    System.out.format("Forwarding Request %s to %s %n", request, hostname);
+                    log.format("Forwarded %s to %s %n", request, hostname);
                     request = String.format("%s%n", request);
                     writer.write(request, 0, request.length());
                     writer.flush();
                     int bytesResponse = reader.read(reply, 0, 4096);
+
+                    if (bytesResponse == -1) {
+                        System.err.println("Could not read response from server");
+                    }
                 } catch (IOException e) {
-                    System.err.println(e);
+
+                    try {
+                        ProxyServer.unresponsive.put(hostname + ":" + portnum);
+                    } catch (InterruptedException i) {}
                 }
 
-                // Lastly, write server response to client 
+                // Lastly, write the server response to client 
                 out.print(reply);
                 out.flush();
             }
