@@ -33,7 +33,7 @@ public class URLShortner {
 	static final int PORT = 8080;
 	
 	// verbose mode
-	static final boolean verbose = false;
+	static final boolean verbose = true;
 
 	public static void main(String[] args) {
 		try {
@@ -82,7 +82,7 @@ public class URLShortner {
 				out.println("Content-type: " + contentMimeType);
 				out.println("Content-length: " + fileLength);
 				out.println(); 
-				out.flush(); 
+				out.flush(); // 
 
 				dataOut.write(fileData, 0, fileLength);
 				dataOut.flush();
@@ -103,7 +103,6 @@ public class URLShortner {
 						//read content to return to client
 						byte[] fileData = readFileData(file, fileLength);
 						
-						// out.println("HTTP/1.1 301 Moved Permanently");
 						out.println("HTTP/1.1 307 Temporary Redirect");
 						out.println("Location: "+longResource);
 						out.println("Server: Java HTTP Server/Shortner : 1.0");

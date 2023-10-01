@@ -19,6 +19,8 @@ public class URLHash{
 
         int numPartitions = Integer.valueOf(args[0]);
         URLHash h = new URLHash(numPartitions);
+
+        
         HashMap<Integer, Integer> countsById = new HashMap<Integer, Integer>();
         int partId;
         String shortURL;
