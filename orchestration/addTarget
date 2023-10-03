@@ -1,0 +1,6 @@
+#!/bin/bash
+
+# Usage ./addTarget dh2026pc05 8080
+PROJECT_ROOT="`pwd`/../";
+ssh $1 "cd $PROJECT_ROOT; java URLShortner"
+echo "ADD $1 $2" | nc -q 0 localhost 8081

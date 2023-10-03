@@ -1,3 +1,5 @@
+package load_balancer;
+
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -18,11 +20,12 @@ public class ProxyServer {
     private int numPartitions = 0;
     private int numTargets = 0;
 
-    /* Currently active, standby targets */
+    /* List of currently active targets, and queue of standby targets */
     private ArrayList<String> targets = new ArrayList<String>();
     private LinkedList<String> standby = new LinkedList<String>();
 
     private int initService() {
+
         // Read the targets in from config/hosts, testing if each target is reachable 
         try(FileReader reader = new FileReader("config/hosts.txt");
             BufferedReader r = new BufferedReader(reader)) {
@@ -46,9 +49,8 @@ public class ProxyServer {
         } catch (IOException e) {}
 
         if (targets.isEmpty()) {
-            return -1;
+            return -1; // unable to proceed with load balancing
         }
-
 
         numTargets =  targets.size();
         numPartitions = numTargets;
@@ -61,6 +63,7 @@ public class ProxyServer {
 
 
     private int addTarget(String hostname, int portnum, boolean should_standby) {
+        
         // Test the connection to the target 
         try (Socket client = new Socket(hostname, portnum)) {
             if (should_standby) {
@@ -217,7 +220,7 @@ public class ProxyServer {
                             if (error == 1) {
                                 out.println("Could not find target");
                             } else if (error == 2) {
-                                out.println("Could not replace target with a standby target");
+                                out.format("Could not replace target %s with a standby target. %n", hostname);
                                 System.exit(1);
                             }
                             
@@ -226,9 +229,9 @@ public class ProxyServer {
                             portnum = Integer.parseInt(m.group(2));
                             error = addTarget(hostname, portnum, true);
                             if (error != 0) {
-                                out.println("Could not connect to target");
+                                out.println("Could not connect to target %s %n", hostname);
                             } else {
-                                out.println("Added target on standby");
+                                out.println("Added target %s on standby %n", hostname);
                             }
                         } else if (ap.STOP.matcher(cmd).matches()) {
                             out.println("Stopping service");

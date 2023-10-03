@@ -1,4 +1,12 @@
+package load_balancer;
+
 import java.util.regex.*;
+
+/**
+ * Defines the communication protocol that orchestration scripts will use to interact
+ * with the load balancer
+ * @Author Keshav Worathur
+ */
 
 public class AdminProtocol {
 
