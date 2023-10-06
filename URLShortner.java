@@ -108,7 +108,11 @@ public class URLShortner {
 
 
         Pattern distributeput = Pattern.compile(
+<<<<<<< HEAD
           "^DISTRIBUTE\s+/(\S+)\s+(\S+)$"
+=======
+          "^PUT\\s+/set-partition\\?id=(\\S+)\\?name=(\\S+)&host=(\\S+)\\s+(\\S+)$"
+>>>>>>> 38f0b57aab2dfddb4ce99ed732898ba81f3ccb11
         );
         Matcher distributemput = distributeput.matcher(input);
         if (distributemput.matches()) {
