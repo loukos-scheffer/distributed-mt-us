@@ -7,147 +7,89 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.regex.*;
 
+import load_balancer.*;
 
+/**
+ * Main class for the reverse proxy load balancer.
+ */
 public class ProxyServer {
 
-    /* Data shared with threads that handle requests */
-    public static ConcurrentHashMap<Integer, ArrayList<String>> targetsByPart = new ConcurrentHashMap<Integer,ArrayList<String>>();
-    public static URLHash requestHash;
-    public static LinkedBlockingQueue<String> unresponsive = new LinkedBlockingQueue<String>();
+    // Shared thread data
+    private final ThreadData td;
 
-    /* Replication information */
-    private final int replicationFactor = 2;
-    private int numPartitions = 0;
-    private int numTargets = 0;
+    // Performance parameters
+    private final int poolSize=8;
+    private final int numHandlers=8;
 
-    /* List of currently active targets, and queue of standby targets */
-    private ArrayList<String> targets = new ArrayList<String>();
-    private LinkedList<String> standby = new LinkedList<String>();
 
-    private int initService() {
+    public ProxyServer() {
+        this.td = new ThreadData(poolSize);
+    }
+
+    public int initService() {
 
         // Read the targets in from config/hosts, testing if each target is reachable 
-        try(FileReader reader = new FileReader("config/hosts.txt");
+        try(FileReader reader = new FileReader("config/hosts");
             BufferedReader r = new BufferedReader(reader)) {
             String line;
             String hostname;
-            int portNum;
+            int portnum;
+            int error;
 
             line = r.readLine();
 
             while (line != null) {
-                String hostInfo[] = line.split("\\s+");
+                String hostInfo[] = line.split(":");
                 hostname = hostInfo[0];
-                portNum = Integer.parseInt(hostInfo[1]);
-                try (Socket server = new Socket(hostname, portNum)){
-                    targets.add(hostname + ":" + portNum);
-                } catch (IOException e) {
-                    System.err.format("Target %s:%d unreachable %n", hostname, portNum);
+                portnum = Integer.parseInt(hostInfo[1]);
+                error = td.addTarget(hostname, portnum, false);
+
+                if (error != 0) {
+                    System.err.format("[ERROR] Target %d unreachable %n", hostname);
                 }
                 line = r.readLine();
             }  
-        } catch (IOException e) {}
-
-        if (targets.isEmpty()) {
-            return -1; // unable to proceed with load balancing
-        }
-
-        numTargets =  targets.size();
-        numPartitions = numTargets;
-        requestHash = new URLHash(numPartitions);
-        assignPartitions();
-
-        return 0;
-
-    }
-
-
-    private int addTarget(String hostname, int portnum, boolean should_standby) {
-        
-        // Test the connection to the target 
-        try (Socket client = new Socket(hostname, portnum)) {
-            if (should_standby) {
-                standby.add(hostname + ":" + portnum);
-            } else {
-                targets.add(hostname + ":" + portnum);
-            }
         } catch (IOException e) {
-            System.err.format("Target %s:%d unreachable %n", hostname, portnum);
-            return -1;
+            System.err.println("[ERROR] config/hosts file does not exist");
         }
 
-        // recompute partitions
-        numPartitions += 1;
-        requestHash = new URLHash(numPartitions);
-        assignPartitions();
+        if (td.getTargets().size() == 0) {
+            System.err.println("[ERROR] Unable to initialize at least one target");
+            return -1; // could not connect to any targets
+        }
+
         return 0;
     }
 
-    private int removeTarget(String targetName, boolean replace) {
 
-        if (replace && !standby.isEmpty()) {
-            int i = targets.indexOf(targetName);
-            if (i == -1) {
-                return 1;
-            }
-            String newTarget = standby.pollFirst();
-            targets.set(i, newTarget);
-        } else {
-            targets.remove(targetName);
-            numPartitions -= 1;
-            requestHash = new URLHash(numPartitions);
-
-            if (replace) {
-                System.err.format("Unable to replace failed target %s, no available standby targets %n", targetName);
-                return 2;
-            }
-        }
-
-        assignPartitions();
-        return 0;
-    }
-
-    private void stopService(Thread lb) {
+    public void stopService(Thread lbWorker) {
         try {
-            lb.interrupt();
+            String hostname;
+            int portnum;
+            int error;
+
+            lbWorker.interrupt();
+            for (String targetName: td.getTargets()) {
+                error = td.removeTarget(targetName, false);
+            }
+
         } catch (SecurityException e) {
             System.err.println(e);
         }
-
     }
 
-    private void assignPartitions() {
-        // assign targets to partitions and store this information in targetsByPart HashMap
-        // copy this information a manifest file to be used by the targets
-        for (int i = 0; i < numPartitions; i++) {
-            int h1 = i % numTargets;
-            int h2 = (i + 1) % numTargets;
-            targetsByPart.put(i, new ArrayList<>(Arrays.asList(targets.get(h1), targets.get(h2))));
-        }
-
-        try (FileWriter fw = new FileWriter("config/manifest.txt");
-                BufferedWriter writer = new BufferedWriter(fw)) {
-                for (Map.Entry<Integer, ArrayList<String>> entry: targetsByPart.entrySet()) {
-                    int partId = entry.getKey();
-                    ArrayList<String> hosts = entry.getValue();
-
-                    String s = Integer.toString(partId);
-
-                    for (int j = 0; j < hosts.size(); j++){
-                        s = s + "," + hosts.get(j);
-                    } 
-                    writer.write(s);
-                    writer.newLine();
-                }
-            } catch (IOException e) {}
-    }
-
+    
     public void startProxyServer(){
 
         try {
 
+            // Create one socket to listen for service requests and another 
+            // to listen to scaling actions
+
+            
+        
             // Create a server socket
-            int loadBalancerPort = 8080;
+            int localPort = 8080;
             int adminPort = 8081;
 
             boolean serviceStarted = false;
@@ -157,10 +99,10 @@ public class ProxyServer {
                 public void run() {
                     String targetName;
                     for (;;) {
-                        try {
-                            targetName = ProxyServer.unresponsive.take();
-                            removeTarget(targetName, true);
-                        } catch (InterruptedException e) {}
+                        targetName = td.pollUnresponsiveTargets();
+                        if (targetName != null) {
+                            td.removeTarget(targetName, true);
+                        }
                     }
                 }
             };
@@ -189,22 +131,23 @@ public class ProxyServer {
 
                     while ((cmd = in.readLine()) != null) {
                         Matcher m;
+
                         if (!serviceStarted && ap.INIT.matcher(cmd).matches()) {
                             error = initService();
                             if (error != 0) {
-                                out.println("No targets added");
+                                out.println("[ERROR] No targets added");
                             } else {
-                                out.println("READY");
+                                out.format("Load balancer started on port %d %n", localPort);
                             }
 
-                            lb = new Thread(new LoadBalancer(loadBalancerPort));
+                            lb = new Thread(new LoadBalancer(localPort, numHandlers, td));
                             lb.start();
                             serviceStarted = true;
                             
                         } else if ((m = ap.ADD.matcher(cmd)).matches()) {
                             hostname = m.group(1);
                             portnum = Integer.parseInt(m.group(2));
-                            error = addTarget(hostname, portnum, false);
+                            error = td.addTarget(hostname, portnum, false);
 
                             if (error != 0) {
                                 out.format("Unable to add target %s:%d %n", hostname, portnum);
@@ -215,7 +158,7 @@ public class ProxyServer {
                         } else if ((m = ap.RM.matcher(cmd)).matches()) {
                             hostname = m.group(1);
                             portnum = Integer.parseInt(m.group(2));
-                            error = removeTarget(hostname + ":" + portnum, false);
+                            error = td.removeTarget(hostname + ":" + portnum, false);
 
                             if (error == 1) {
                                 out.println("Could not find target");
@@ -227,11 +170,11 @@ public class ProxyServer {
                         } else if ((m = ap.STANDBY.matcher(cmd)).matches()) {
                             hostname = m.group(1);
                             portnum = Integer.parseInt(m.group(2));
-                            error = addTarget(hostname, portnum, true);
+                            error = td.addTarget(hostname, portnum, true);
                             if (error != 0) {
-                                out.println("Could not connect to target %s %n", hostname);
+                                out.format("Could not connect to target %s %n", hostname);
                             } else {
-                                out.println("Added target %s on standby %n", hostname);
+                                out.format("Added target %s on standby %n", hostname);
                             }
                         } else if (ap.STOP.matcher(cmd).matches()) {
                             out.println("Stopping service");
@@ -249,7 +192,6 @@ public class ProxyServer {
             
     }
 
-
     public static void main(String[] args) throws IOException {
             ProxyServer ps = new ProxyServer();
             ps.startProxyServer();
@@ -257,24 +199,24 @@ public class ProxyServer {
 }
 
 
-
 class LoadBalancer implements Runnable {
 
     private final ServerSocket serverSocket;
+    private ThreadData td;
     private final ExecutorService pool;
-    private final PrintWriter log = new PrintWriter(new FileWriter("lb_events.txt"), true);
+    private final PrintWriter log = new PrintWriter(new FileWriter("log/traffic_log.txt"), true);
 
-    public LoadBalancer(int localPort) 
+    public LoadBalancer(int localPort, int numWorkers, ThreadData td) 
         throws IOException {
-        serverSocket = new ServerSocket(localPort);
-        System.out.format("Load balancer started on port %d %n", localPort);
-        pool = Executors.newFixedThreadPool(16);
+        this.serverSocket = new ServerSocket(localPort);
+        this.pool = Executors.newFixedThreadPool(numWorkers);
+        this.td = td;
     }
 
     public void run() {
         try {
             for (;;) {
-                pool.execute(new RequestHandler(serverSocket.accept(), log));
+                pool.execute(new RequestHandler(serverSocket.accept(), td, log));
             }
         } catch (IOException e) {
             pool.shutdown();
