@@ -21,6 +21,7 @@ import java.util.regex.Pattern;
 import java.net.http.*;
 import java.net.URI;
 import java.time.Duration;
+import java.net.InetAddress;
 
 
 
@@ -34,6 +35,9 @@ public class URLShortner {
   static final String REDIRECT = "redirect.html";
   static final String NOT_FOUND = "notfound.html";
   static final String DATABASE = "database.txt";
+  static final String MANIFEST = "./config/manifest.txt";
+  static String HOSTNAME = null;
+  static String HOSTNAMEPORT = null;
   // port to listen connection
   static final int PORT = 59958;
 
@@ -48,29 +52,29 @@ public class URLShortner {
 
   public static void main(String[] args) {
     try {
+      HOSTNAME = InetAddress.getLocalHost().getHostName();
+      HOSTNAMEPORT = HOSTNAME + ":" + PORT;
+      System.out.println("Attempting to start server on: " + HOSTNAMEPORT);
       ServerSocket serverConnect = new ServerSocket(PORT);
       System.out.println(
         "Server started.\nListening for connections on port : " +
         PORT +
         " ...\n"
       );
+      System.out.println("Reading Parition Information from manifest...");
+      boolean readSuccess = updateFromManifest();
+      if(readSuccess) {
+        System.out.println("Sucessfully read partition information");
+        System.out.println("PARTITION1 NAME,HOST : " + PARTITION_1_NAME + "," + PARTITION_1_BACKUP_HOST);
+        System.out.println("PARTITION1 NAME,HOST : " + PARTITION_2_NAME + "," + PARTITION_2_BACKUP_HOST);
+      } else {
+        System.out.println("FAILED TO READ MANIFEST");
+      }
 
       // we listen until user halts server execution
       while (true) {
         if (verbose) {
           System.out.println("Connecton opened. (" + new Date() + ")");
-          System.out.println(
-            "PARTITION 1 NAME, BACKUP_HOST: " +
-            PARTITION_1_NAME +
-            " " +
-            PARTITION_1_BACKUP_HOST
-          );
-          System.out.println(
-            "PARTITION 2 NAME, BACKUP_HOST: " +
-            PARTITION_2_NAME +
-            " " +
-            PARTITION_2_BACKUP_HOST
-          );
         }
         HandleRequestWorker worker = new HandleRequestWorker(
           serverConnect.accept()
@@ -79,6 +83,61 @@ public class URLShortner {
       }
     } catch (IOException e) {
       System.err.println("Server Connection error : " + e.getMessage());
+    }
+  }
+
+  private static boolean updateFromManifest() {
+    try {
+      File file = new File(MANIFEST);
+      FileReader fileReader = new FileReader(file);
+      BufferedReader bufferedReader = new BufferedReader(fileReader);
+      String line;
+      String HOSTNAME1 = null;
+      String HOSTNAME1PARTITION = null;
+      String HOSTNAME2 = null;
+      String HOSTNAME2PARTITION = null;
+      while ((line = bufferedReader.readLine()) != null) {          
+        String[] map = line.split(",");
+        String partitionNumber = map[0];
+        String hostOne = map[1];
+        String hostTwo = map[2];
+        if(hostOne.equals(HOSTNAMEPORT)) {
+          if(HOSTNAME1 != null && !HOSTNAME1.isEmpty()) {
+            HOSTNAME2 = hostTwo;
+            HOSTNAME2PARTITION = partitionNumber;
+          } else {
+            HOSTNAME1 = hostTwo;
+            HOSTNAME1PARTITION = partitionNumber;
+          }
+        }
+        if(hostTwo.equals(HOSTNAMEPORT)) {
+          if(HOSTNAME1 != null && !HOSTNAME1.isEmpty()) {
+            HOSTNAME2 = hostOne;
+            HOSTNAME2PARTITION = partitionNumber;
+          } else {
+            HOSTNAME1 = hostOne;
+            HOSTNAME1PARTITION = partitionNumber;
+          }
+        }
+      }
+      fileReader.close();
+      if(HOSTNAME1 != null && !HOSTNAME1.isEmpty()&& 
+      HOSTNAME2 != null &&!HOSTNAME2.isEmpty() && 
+      HOSTNAME1PARTITION != null && !HOSTNAME1PARTITION.isEmpty() && 
+      HOSTNAME2PARTITION != null && !HOSTNAME2PARTITION.isEmpty()) {
+        PARTITION_1_NAME = HOSTNAME1PARTITION;
+        PARTITION_1_BACKUP_HOST = "http://" + HOSTNAME1 + "/";
+        PARTITION_2_NAME = HOSTNAME2PARTITION;
+        PARTITION_2_BACKUP_HOST = "http://" + HOSTNAME2 + "/";
+        System.out.println("Sucessfully read partition information");
+        System.out.println("PARTITION1 NAME,HOST : " + PARTITION_1_NAME + "," + PARTITION_1_BACKUP_HOST);
+        System.out.println("PARTITION1 NAME,HOST : " + PARTITION_2_NAME + "," + PARTITION_2_BACKUP_HOST);
+        return true;
+      }
+      System.out.println("FAILED TO READ MANIFEST");
+      return false;
+    } catch (IOException e) {
+      return false;
     }
   }
 
@@ -111,12 +170,11 @@ public class URLShortner {
           "^DISTRIBUTE\\s+/(\\S+)\\s+(\\S+)$"
         );
         Matcher distributemput = distributeput.matcher(input);
-        System.out.println("AFTER DISTRIBUTE MATCHER " + distributemput.matches());
         if (distributemput.matches()) {
-          System.out.println("DISTRIBUTE MATCHER IN");
           String numHosts = distributemput.group(1);
           String httpVersion = distributemput.group(2);
           System.out.println("DISTRIBUTE TO " + numHosts);
+          updateFromManifest();
           out.println("HTTP/1.1 200 OK");
           out.println();
           out.flush();
