@@ -111,9 +111,11 @@ public class URLShortner {
           "^DISTRIBUTE\s+/(\S+)\s+(\S+)$"
         );
         Matcher distributemput = distributeput.matcher(input);
+        System.out.println("AFTER DISTRIBUTE MATCHER " + distributemput.matches());
         if (distributemput.matches()) {
+          System.out.println("DISTRIBUTE MATCHER IN");
           String numHosts = distributemput.group(1);
-          String httpVersion = distributemput.group(4);
+          String httpVersion = distributemput.group(2);
           System.out.println("DISTRIBUTE TO " + numHosts);
           out.println("HTTP/1.1 200 OK");
           out.println();
