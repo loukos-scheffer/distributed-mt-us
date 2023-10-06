@@ -143,7 +143,6 @@ public class URLShortner {
           out.flush();
           return;
         }
-        
 
         Pattern setbackupput = Pattern.compile(
           "^PUT\\s+/set-backup\\?id=(\\S+)\\?short=(\\S+)&long=(\\S+)\\s+(\\S+)$"
