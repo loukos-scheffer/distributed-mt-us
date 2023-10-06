@@ -2,9 +2,11 @@ package load_balancer;
 
 import java.util.regex.*;
 
+import load_balancer.*;
+
 /**
  * Defines the communication protocol that orchestration scripts will use to interact
- * with the load balancer
+ * with the load balancer.
  * @Author Keshav Worathur
  */
 
