@@ -106,6 +106,21 @@ public class URLShortner {
 
         if (verbose) System.out.println("first line: " + input);
 
+
+        Pattern distributeput = Pattern.compile(
+          "^DISTRIBUTE\s+/(\S+)\s+(\S+)$"
+        );
+        Matcher distributemput = distributeput.matcher(input);
+        if (distributemput.matches()) {
+          String numHosts = distributemput.group(1);
+          String httpVersion = distributemput.group(4);
+          System.out.println("DISTRIBUTE TO " + numHosts);
+          out.println("HTTP/1.1 200 OK");
+          out.println();
+          out.flush();
+          return;
+        }
+
         Pattern setpartitionput = Pattern.compile(
           "^PUT\\s+/set-partition\\?id=(\\S+)\\?name=(\\S+)&host=(\\S+)\\s+(\\S+)$"
         );
@@ -128,6 +143,7 @@ public class URLShortner {
           out.flush();
           return;
         }
+        
 
         Pattern setbackupput = Pattern.compile(
           "^PUT\\s+/set-backup\\?id=(\\S+)\\?short=(\\S+)&long=(\\S+)\\s+(\\S+)$"
