@@ -1,12 +1,20 @@
 #!/bin/bash
 PROJECT_ROOT="`pwd`/../"
 
+rm ../config/allhosts
+touch ../config/allhosts
+
 # Start up the URL shortening service on each of the nodes
 for host in `cat ../config/hosts`
 do 
     readarray -d : -t info <<< $host
-    ssh "${info[0]}" "cd \"$PROJECT_ROOT\"; java URLShortner" &
+    echo "Starting URLShortener service on ${info[0]}:${info[1]}";
+    ssh "${info[0]}" "cd \"$PROJECT_ROOT\"; java URLShortner ${info[1]}" > /dev/null &
 done
 
-cd $SRC
-java ProxyServer
+cat ../config/hosts >> ../config/allhosts
+
+(sleep 1; echo "INIT" | nc -q 0 localhost 8081) &
+
+cd $PROJECT_ROOT
+java load_balancer/ProxyServer 2> log/error.txt

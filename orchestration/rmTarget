@@ -4,3 +4,5 @@
 PROJECT_ROOT="`pwd`/../";
 ssh $1 "cd $PROJECT_ROOT; kill -9 $(lsof -t -i tcp:$2)" &;
 echo "RM $1 $2" | nc -q 0 localhost 8081
+
+echo "$1:$2" >> ../config/allhosts
