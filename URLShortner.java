@@ -35,7 +35,7 @@ public class URLShortner {
   static final String REDIRECT = "redirect.html";
   static final String NOT_FOUND = "notfound.html";
   static final String DATABASE = "database.txt";
-  static final String MANIFEST = "./config/manifest.txt";
+  static final String MANIFEST = "./config/manifest";
   static String HOSTNAME = null;
   static String HOSTNAMEPORT = null;
   // port to listen connection
@@ -65,8 +65,6 @@ public class URLShortner {
       boolean readSuccess = updateFromManifest();
       if(readSuccess) {
         System.out.println("Sucessfully read partition information");
-        System.out.println("PARTITION1 NAME,HOST : " + PARTITION_1_NAME + "," + PARTITION_1_BACKUP_HOST);
-        System.out.println("PARTITION1 NAME,HOST : " + PARTITION_2_NAME + "," + PARTITION_2_BACKUP_HOST);
       } else {
         System.out.println("FAILED TO READ MANIFEST");
       }
