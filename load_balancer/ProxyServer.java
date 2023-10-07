@@ -10,25 +10,33 @@ import java.util.regex.*;
 import load_balancer.*;
 
 /**
- * Main class for the reverse proxy load balancer.
+ *  Starts all tasks, and listens for scaling commands from an admin
  */
 public class ProxyServer {
 
     // Shared thread data
-    private final ThreadData td;
+    private final ForwardingData fd;
+    private final MonitoringData md;
 
-    // Performance parameters
-    private final int poolSize=8;
-    private final int numHandlers=8;
+    // To control throughput
+    private final int poolSize=16;
+    private final int numHandlers=32;
+    private final int replicationFactor=2;
 
+    private final PrintWriter err;
 
-    public ProxyServer() {
-        this.td = new ThreadData(poolSize);
+    public ProxyServer() 
+        throws IOException {
+        this.fd = new ForwardingData(poolSize, replicationFactor);
+        this.md = new MonitoringData();
+        err = new PrintWriter(new FileWriter("log/error.txt"), true);
     }
 
     public int initService() {
 
         // Read the targets in from config/hosts, testing if each target is reachable 
+        String threadName = Thread.currentThread().getName();
+
         try(FileReader reader = new FileReader("config/hosts");
             BufferedReader r = new BufferedReader(reader)) {
             String line;
@@ -42,25 +50,27 @@ public class ProxyServer {
                 String hostInfo[] = line.split(":");
                 hostname = hostInfo[0];
                 portnum = Integer.parseInt(hostInfo[1]);
-                error = td.addTarget(hostname, portnum, false);
+                error = fd.addTarget(hostname, portnum, false);
 
                 if (error != 0) {
-                    System.err.format("[ERROR] Target %d unreachable %n", hostname);
+                    err.format("[%s] Target %d unreachable %n", threadName, hostname);
                 }
                 line = r.readLine();
             }  
         } catch (IOException e) {
-            System.err.println("[ERROR] config/hosts file does not exist");
+            err.format("[%s] config/hosts file does not exist %n", threadName);
         }
 
-        if (td.getTargets().size() == 0) {
-            System.err.println("[ERROR] Unable to initialize at least one target");
+        if (fd.getTargets().size() == 0) {
+            err.format("[%s] Unable to initialize at least one target %n", threadName);
             return -1; // could not connect to any targets
         }
 
+        fd.assignPartitions();
+        fd.rehashPairs();
+
         return 0;
     }
-
 
     public void stopService(Thread lbWorker) {
         try {
@@ -69,8 +79,9 @@ public class ProxyServer {
             int error;
 
             lbWorker.interrupt();
-            for (String targetName: td.getTargets()) {
-                error = td.removeTarget(targetName, false);
+
+            for (String targetName: fd.getTargets()) {
+                error = fd.removeTarget(targetName, false);
             }
 
         } catch (SecurityException e) {
@@ -78,44 +89,33 @@ public class ProxyServer {
         }
     }
 
-    
     public void startProxyServer(){
 
         try {
 
             // Create one socket to listen for service requests and another 
             // to listen to scaling actions
-
-            
-        
-            // Create a server socket
             int localPort = 8080;
             int adminPort = 8081;
 
             boolean serviceStarted = false;
 
             // Start a thread that listens for unresponsive target events
-            Thread targetRecycler = new Thread() {
-                public void run() {
-                    String targetName;
-                    for (;;) {
-                        targetName = td.pollUnresponsiveTargets();
-                        if (targetName != null) {
-                            td.removeTarget(targetName, true);
-                        }
-                    }
-                }
-            };
-
-
+            Thread targetRecycler = new Thread(new TargetRecycler(fd));
             targetRecycler.start();
+
+            Thread monitoringApp = new Thread(new MonitoringApp(fd, md));
+            monitoringApp.start();
+
+            Thread healthChecker = new Thread(new HealthChecker(fd));
+            healthChecker.start();
+
+            Thread lb = null;
 
             // In the main thread run a server which listens to scaling events
             ServerSocket adminServer = new ServerSocket(adminPort);
-            Thread lb = null;
-
-            // Define the admin server protocol
             AdminProtocol ap = new AdminProtocol();
+
             
             while (true) {
 
@@ -136,49 +136,60 @@ public class ProxyServer {
                             error = initService();
                             if (error != 0) {
                                 out.println("[ERROR] No targets added");
-                            } else {
-                                out.format("Load balancer started on port %d %n", localPort);
-                            }
+                                System.exit(1);
+                            } 
+                                
+                            out.format("Load balancer started on port %d %n", localPort);
+                            fd.assignPartitions();
+                            fd.rehashPairs();
 
-                            lb = new Thread(new LoadBalancer(localPort, numHandlers, td));
+                            lb = new Thread(new LoadBalancer(localPort, numHandlers, fd, md, err));
                             lb.start();
                             serviceStarted = true;
                             
                         } else if ((m = ap.ADD.matcher(cmd)).matches()) {
                             hostname = m.group(1);
                             portnum = Integer.parseInt(m.group(2));
-                            error = td.addTarget(hostname, portnum, false);
-
+                            error = fd.addTarget(hostname, portnum, false);
+                            
                             if (error != 0) {
                                 out.format("Unable to add target %s:%d %n", hostname, portnum);
                             } else {
-                                out.println("Added target");
+                                out.println("Added target %s:%d");
+                                fd.assignPartitions();
+                                fd.rehashPairs();
                             }
                             
                         } else if ((m = ap.RM.matcher(cmd)).matches()) {
                             hostname = m.group(1);
                             portnum = Integer.parseInt(m.group(2));
-                            error = td.removeTarget(hostname + ":" + portnum, false);
-
-                            if (error == 1) {
-                                out.println("Could not find target");
-                            } else if (error == 2) {
-                                out.format("Could not replace target %s with a standby target. %n", hostname);
-                                System.exit(1);
+                            error = fd.removeTarget(hostname + ":" + portnum, false);
+                            if (error == -1) {
+                                out.format("Could not find target %s%n", hostname);
+                            }  else{
+                                out.format("Removed target %s:%d%n", hostname, portnum);
+                                fd.assignPartitions();
+                                fd.rehashPairs();
                             }
-                            
+
                         } else if ((m = ap.STANDBY.matcher(cmd)).matches()) {
                             hostname = m.group(1);
                             portnum = Integer.parseInt(m.group(2));
-                            error = td.addTarget(hostname, portnum, true);
+                            error = fd.addTarget(hostname, portnum, true);
                             if (error != 0) {
                                 out.format("Could not connect to target %s %n", hostname);
                             } else {
                                 out.format("Added target %s on standby %n", hostname);
+                                fd.assignPartitions();
+                                fd.rehashPairs();
                             }
                         } else if (ap.STOP.matcher(cmd).matches()) {
                             out.println("Stopping service");
-                            stopService(lb);
+                            targetRecycler.interrupt();
+                            monitoringApp.interrupt();
+                            healthChecker.interrupt();
+                            lb.interrupt();
+                            // stopService(lb);
                             System.exit(0);
                         } else {
                             out.println("Command not recognized");
@@ -196,33 +207,39 @@ public class ProxyServer {
             ProxyServer ps = new ProxyServer();
             ps.startProxyServer();
     }
+
 }
 
 
 class LoadBalancer implements Runnable {
 
     private final ServerSocket serverSocket;
-    private ThreadData td;
-    private final ExecutorService pool;
-    private final PrintWriter log = new PrintWriter(new FileWriter("log/traffic_log.txt"), true);
 
-    public LoadBalancer(int localPort, int numWorkers, ThreadData td) 
+    private ForwardingData fd;
+    private MonitoringData md;
+
+    private final ExecutorService pool;
+    private final PrintWriter log;
+    private final PrintWriter err;
+
+    public LoadBalancer(int localPort, int numWorkers, ForwardingData fd, MonitoringData md, PrintWriter err) 
         throws IOException {
         this.serverSocket = new ServerSocket(localPort);
         this.pool = Executors.newFixedThreadPool(numWorkers);
-        this.td = td;
+        this.fd = fd;
+        this.md = md;
+        this.log = new PrintWriter(new FileWriter("log/traffic_log.txt"), true);
+        this.err = err;
     }
 
     public void run() {
         try {
             for (;;) {
-                pool.execute(new RequestHandler(serverSocket.accept(), td, log));
+                pool.execute(new RequestHandler(serverSocket.accept(), fd, md, log, err));
             }
         } catch (IOException e) {
             pool.shutdown();
             System.err.println(e);
-        }
+        } 
     }
 }
-
-
