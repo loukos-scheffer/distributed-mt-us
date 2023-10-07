@@ -1,0 +1,8 @@
+#!/bin/bash
+
+ab -n 100 -c 4 -g load.tsv http://localhost:8080/000000000000000000000000000000000000000 | grep "Time taken for tests"
+ab -n 200 -c 4 -g load.tsv http://localhost:8080/000000000000000000000000000000000000000 | grep "Time taken for tests"
+ab -n 400 -c 4 -g load.tsv http://localhost:8080/000000000000000000000000000000000000000 | grep "Time taken for tests"
+ab -n 800 -c 4 -g load.tsv http://localhost:8080/000000000000000000000000000000000000000 | grep "Time taken for tests"
+ab -n 1600 -c 4 -g load.tsv http://localhost:8080/000000000000000000000000000000000000000 | grep "Time taken for tests"
+ab -n 4000 -c 4 -g load.tsv http://localhost:8080/000000000000000000000000000000000000000 | grep "Time taken for tests"
