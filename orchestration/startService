@@ -1,8 +1,7 @@
 #!/bin/bash
 PROJECT_ROOT="`pwd`/../"
 
-rm ../config/allhosts
-touch ../config/allhosts
+truncate -s 0 ../config/allhosts
 
 # Start up the URL shortening service on each of the nodes
 for host in `cat ../config/hosts`
