@@ -1,28 +1,3 @@
-import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.PrintWriter;
-import java.io.PrintWriter;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.URL;
-import java.util.Date;
-import java.util.StringTokenizer;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.net.http.*;
-import java.net.URI;
-import java.time.Duration;
-
-
 
 public class URLShortner {
 
@@ -48,7 +23,7 @@ public class URLShortner {
 
   public static void main(String[] args) {
     try {
-      ServerSocket serverConnect = new ServerSocket(PORT);
+      ServerSocket serverConnect = new ServerSocket(Integer.parseInt(args[0]));
       System.out.println(
         "Server started.\nListening for connections on port : " +
         PORT +
@@ -57,21 +32,21 @@ public class URLShortner {
 
       // we listen until user halts server execution
       while (true) {
-        if (verbose) {
-          System.out.println("Connecton opened. (" + new Date() + ")");
-          System.out.println(
-            "PARTITION 1 NAME, BACKUP_HOST: " +
-            PARTITION_1_NAME +
-            " " +
-            PARTITION_1_BACKUP_HOST
-          );
-          System.out.println(
-            "PARTITION 2 NAME, BACKUP_HOST: " +
-            PARTITION_2_NAME +
-            " " +
-            PARTITION_2_BACKUP_HOST
-          );
-        }
+        // if (verbose) {
+        //   System.out.println("Connecton opened. (" + new Date() + ")");
+        //   System.out.println(
+        //     "PARTITION 1 NAME, BACKUP_HOST: " +
+        //     PARTITION_1_NAME +
+        //     " " +
+        //     PARTITION_1_BACKUP_HOST
+        //   );
+        //   System.out.println(
+        //     "PARTITION 2 NAME, BACKUP_HOST: " +
+        //     PARTITION_2_NAME +
+        //     " " +
+        //     PARTITION_2_BACKUP_HOST
+        //   );
+        // }
         HandleRequestWorker worker = new HandleRequestWorker(
           serverConnect.accept()
         );
@@ -101,144 +76,101 @@ public class URLShortner {
           new BufferedReader(new InputStreamReader(connect.getInputStream()));
         out = new PrintWriter(connect.getOutputStream());
         dataOut = new BufferedOutputStream(connect.getOutputStream());
+        String input;
+        
+        while ((input = in.readLine()) != null) {
 
-        String input = in.readLine();
+          if (verbose) System.out.println("first line: " + input);
 
-        if (verbose) System.out.println("first line: " + input);
+          Pattern pput = Pattern.compile(
+            "^PUT\\s+/\\?short=(\\S+)&long=(\\S+)\\s+(\\S+)$"
+          );
+          Matcher mput = pput.matcher(input);
+          if (mput.matches()) {
+            String shortResource = mput.group(1);
+            String longResource = mput.group(2);
+            String httpVersion = mput.group(3);
 
-        Pattern setpartitionput = Pattern.compile(
-          "^PUT\\s+/set-partition\\?id=(\\S+)\\?name=(\\S+)&host=(\\S+)\\s+(\\S+)$"
-        );
-        Matcher setpartitionmput = setpartitionput.matcher(input);
-        if (setpartitionmput.matches()) {
-          System.out.println("SET PARTITION MATCH");
-          String partitionID = setpartitionmput.group(1);
-          String partitionName = setpartitionmput.group(2);
-          String host = setpartitionmput.group(3);
-          String httpVersion = setpartitionmput.group(4);
-          if (Integer.parseInt(partitionID) == 1) {
-            PARTITION_1_NAME = partitionName;
-            PARTITION_1_BACKUP_HOST = host;
-          } else if (Integer.parseInt(partitionID) == 2) {
-            PARTITION_2_NAME = partitionName;
-            PARTITION_2_BACKUP_HOST = host;
-          }
-          out.println("HTTP/1.1 200 OK");
-          out.println();
-          out.flush();
-          return;
-        }
-
-        Pattern setbackupput = Pattern.compile(
-          "^PUT\\s+/set-backup\\?id=(\\S+)\\?short=(\\S+)&long=(\\S+)\\s+(\\S+)$"
-        );
-        Matcher setbackupmput = setbackupput.matcher(input);
-        if (setbackupmput.matches()) {
-          String partitionID = setbackupmput.group(1);
-          String shortResource = setbackupmput.group(2);
-          String longResource = setbackupmput.group(3);
-          String httpVersion = setbackupmput.group(4);
-		  System.out.println("SAVING TO PARTITON: " + partitionID);
-		  System.out.println("SAVING BACKUP: " + shortResource + " " + longResource);
-          if (Integer.parseInt(partitionID) == 1) {
-            save(shortResource, longResource); //TODO: SAVE TO CORRECT DB
-          } else if (Integer.parseInt(partitionID) == 2) {
             save(shortResource, longResource);
-          }
-          out.println("HTTP/1.1 200 OK");
-          out.println();
-          out.flush();
-          return;
-        }
 
-        Pattern pput = Pattern.compile(
-          "^PUT\\s+/\\?short=(\\S+)&long=(\\S+)\\s+(\\S+)$"
-        );
-        Matcher mput = pput.matcher(input);
-        if (mput.matches()) {
-          String shortResource = mput.group(1);
-          String longResource = mput.group(2);
-          String httpVersion = mput.group(3);
+            // HttpClient client = HttpClient
+            //   .newBuilder()
+            //   .connectTimeout(Duration.ofSeconds(10))
+            //   .build();
+            // HttpRequest req = HttpRequest
+            //   .newBuilder()
+            //   .uri(URI.create(PARTITION_1_BACKUP_HOST + "set-backup?id=1?short=test&long=https://www.google.ca/"))
+            //   .PUT(HttpRequest.BodyPublishers.noBody())
+            //   .build();
+            // client.send(req, HttpResponse.BodyHandlers.ofString()).body();
 
-          save(shortResource, longResource);
+            File file = new File(WEB_ROOT, REDIRECT_RECORDED);
+            int fileLength = (int) file.length();
+            String contentMimeType = "text/html";
+            //read content to return to client
+            byte[] fileData = readFileData(file, fileLength);
 
-          HttpClient client = HttpClient
-            .newBuilder()
-            .connectTimeout(Duration.ofSeconds(10))
-            .build();
-          HttpRequest req = HttpRequest
-            .newBuilder()
-            .uri(URI.create(PARTITION_1_BACKUP_HOST + "set-backup?id=1?short=test&long=https://www.google.ca/"))
-            .PUT(HttpRequest.BodyPublishers.noBody())
-            .build();
-          client.send(req, HttpResponse.BodyHandlers.ofString()).body();
+            out.println("HTTP/1.1 200 OK");
+            out.println("Server: Java HTTP Server/Shortner : 1.0");
+            out.println("Date: " + new Date());
+            out.println("Content-type: " + contentMimeType);
+            out.println("Content-length: " + fileLength);
+            out.println();
+            out.flush();
 
-          File file = new File(WEB_ROOT, REDIRECT_RECORDED);
-          int fileLength = (int) file.length();
-          String contentMimeType = "text/html";
-          //read content to return to client
-          byte[] fileData = readFileData(file, fileLength);
+            dataOut.write(fileData, 0, fileLength);
+            dataOut.flush();
+          } else {
+            Pattern pget = Pattern.compile("^(\\S+)\\s+/(\\S+)\\s+(\\S+)$");
+            Matcher mget = pget.matcher(input);
+            if (mget.matches()) {
+              String method = mget.group(1);
+              String shortResource = mget.group(2);
+              String httpVersion = mget.group(3);
 
-          out.println("HTTP/1.1 200 OK");
-          out.println("Server: Java HTTP Server/Shortner : 1.0");
-          out.println("Date: " + new Date());
-          out.println("Content-type: " + contentMimeType);
-          out.println("Content-length: " + fileLength);
-          out.println();
-          out.flush();
+              String longResource = find(shortResource);
+              if (longResource != null) {
+                File file = new File(WEB_ROOT, REDIRECT);
+                int fileLength = (int) file.length();
+                String contentMimeType = "text/html";
 
-          dataOut.write(fileData, 0, fileLength);
-          dataOut.flush();
-        } else {
-          Pattern pget = Pattern.compile("^(\\S+)\\s+/(\\S+)\\s+(\\S+)$");
-          Matcher mget = pget.matcher(input);
-          if (mget.matches()) {
-            String method = mget.group(1);
-            String shortResource = mget.group(2);
-            String httpVersion = mget.group(3);
+                //read content to return to client
+                byte[] fileData = readFileData(file, fileLength);
 
-            String longResource = find(shortResource);
-            if (longResource != null) {
-              File file = new File(WEB_ROOT, REDIRECT);
-              int fileLength = (int) file.length();
-              String contentMimeType = "text/html";
+                // out.println("HTTP/1.1 301 Moved Permanently");
+                out.println("HTTP/1.1 307 Temporary Redirect");
+                out.println("Location: " + longResource);
+                out.println("Server: Java HTTP Server/Shortner : 1.0");
+                out.println("Date: " + new Date());
+                out.println("Content-type: " + contentMimeType);
+                out.println("Content-length: " + fileLength);
+                out.println();
+                out.flush();
 
-              //read content to return to client
-              byte[] fileData = readFileData(file, fileLength);
+                dataOut.write(fileData, 0, fileLength);
+                dataOut.flush();
+              } else {
+                File file = new File(WEB_ROOT, FILE_NOT_FOUND);
+                int fileLength = (int) file.length();
+                String content = "text/html";
+                byte[] fileData = readFileData(file, fileLength);
 
-              // out.println("HTTP/1.1 301 Moved Permanently");
-              out.println("HTTP/1.1 307 Temporary Redirect");
-              out.println("Location: " + longResource);
-              out.println("Server: Java HTTP Server/Shortner : 1.0");
-              out.println("Date: " + new Date());
-              out.println("Content-type: " + contentMimeType);
-              out.println("Content-length: " + fileLength);
-              out.println();
-              out.flush();
+                out.println("HTTP/1.1 404 File Not Found");
+                out.println("Server: Java HTTP Server/Shortner : 1.0");
+                out.println("Date: " + new Date());
+                out.println("Content-type: " + content);
+                out.println("Content-length: " + fileLength);
+                out.println();
+                out.flush();
 
-              dataOut.write(fileData, 0, fileLength);
-              dataOut.flush();
-            } else {
-              File file = new File(WEB_ROOT, FILE_NOT_FOUND);
-              int fileLength = (int) file.length();
-              String content = "text/html";
-              byte[] fileData = readFileData(file, fileLength);
-
-              out.println("HTTP/1.1 404 File Not Found");
-              out.println("Server: Java HTTP Server/Shortner : 1.0");
-              out.println("Date: " + new Date());
-              out.println("Content-type: " + content);
-              out.println("Content-length: " + fileLength);
-              out.println();
-              out.flush();
-
-              dataOut.write(fileData, 0, fileLength);
-              dataOut.flush();
+                dataOut.write(fileData, 0, fileLength);
+                dataOut.flush();
+              }
             }
           }
-        }
+      }
       } catch (Exception e) {
-        System.err.println("Server error " + e.getMessage());
+        System.err.println(e);
       } finally {
         try {
           in.close();
