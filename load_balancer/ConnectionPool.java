@@ -7,6 +7,12 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.regex.*;
 
+
+/**
+ * A pool of connections. A set of <poolSize> connections is created for 
+ * each active target.
+ * 
+ */
 public class ConnectionPool{
 
     private ConcurrentHashMap<String, LinkedBlockingQueue<Socket>> socketsByTarget;
@@ -17,8 +23,8 @@ public class ConnectionPool{
         this.poolSize = poolSize;
     }
     
-    public int createConnectionPool(String targetName) 
-    {
+    public void createConnectionPool(String targetName) 
+        throws IOException {
         
         LinkedBlockingQueue<Socket> connections = new LinkedBlockingQueue<Socket>();
         socketsByTarget.put(targetName, connections);
@@ -31,42 +37,42 @@ public class ConnectionPool{
             try {
                 Socket socket = new Socket(hostname, portnum);
                 connections.put(socket);
-            } catch (IOException e) {
-                return -1;
-            } catch (InterruptedException e) {}
+            }  catch (InterruptedException e) {
+                throw new IOException("Could not place connection in pool");
+            }
         }
-        return 0;
-
     }
 
-    public int destroyConnectionPool(String targetName) 
-        {
+    public void destroyConnectionPool(String targetName) 
+        throws IOException {
 
         LinkedBlockingQueue<Socket> connections = socketsByTarget.get(targetName);
         for (Socket s: connections) {
-            try{
-                if (s != null) {
-                    s.close();
-                }
-            } catch (IOException e) {
-                return -1;
+            if (s != null) {
+                s.close();
             }
         }
         socketsByTarget.remove(targetName);
-        return 0;
     }
 
 
-    public Socket openConnection(String targetName)
-        throws InterruptedException {
-
-            return socketsByTarget.get(targetName).take();
+    public Socket connect(String targetName)
+        throws IOException {
+            try {
+                return socketsByTarget.get(targetName).take();
+            } catch (InterruptedException e) {
+                throw new IOException("Could not take connection from pool");
+            }
 
     }
 
-    public void closeConnection(Socket server, String targetName) 
-            throws InterruptedException {
-            socketsByTarget.get(targetName).put(server);
+    public void close(String targetName, Socket server) 
+            throws IOException {
+            try {
+                socketsByTarget.get(targetName).put(server);
+            } catch (InterruptedException e) {
+                throw new IOException("Could not place connection back in pool");
+            }
     }
 
 

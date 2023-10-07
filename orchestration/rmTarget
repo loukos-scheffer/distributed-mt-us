@@ -2,7 +2,13 @@
 
 # Usage ./rmTarget dh2026pc05 8080
 PROJECT_ROOT="`pwd`/../";
-ssh $1 "cd $PROJECT_ROOT; kill -9 $(lsof -t -i tcp:$2)" &;
-echo "RM $1 $2" | nc -q 0 localhost 8081
+
+if ["$#" -ne 2]; then 
+    echo "Usage ./rmTarget hostname portnum"
+    exit 1
+fi
+
+ssh $1 "cd $PROJECT_ROOT; fuser -k -TERM -n tcp $2;" &
+echo "REMOVE $1 $2" | nc -q 0 localhost 8081
 
 echo "$1:$2" >> ../config/allhosts

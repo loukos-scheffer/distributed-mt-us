@@ -1,7 +1,13 @@
 #!/bin/bash
 
 PROJECT_ROOT="`pwd`/../";
-ssh $1 "cd $PROJECT_ROOT; java URLShortner"
+
+if ["$#" -ne 2]; then 
+    echo "Usage ./addTarget hostname portnum"
+    exit 1
+fi
+
+ssh $1 "cd $PROJECT_ROOT; java URLShortner $2" &
 echo "STANDBY $1 $2" | nc -q 0 localhost 8081
 
 echo "$1:$2" >> ../config/allhosts
