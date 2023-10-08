@@ -168,7 +168,7 @@ public class URLShortner {
 
 
         Pattern distributeput = Pattern.compile(
-          "^DISTRIBUTE\s+/(\S+)\s+(\S+)$"
+          "^DISTRIBUTE\\s+/(\\S+)\\s+(\\S+)$"
         );
         Matcher distributemput = distributeput.matcher(input);
         if (distributemput.matches()) {
