@@ -208,13 +208,12 @@ public class URLShortner {
             }
 
             Pattern setbackupput = Pattern.compile(
-              "^PUT\\s+/set-backup\\?short=(\\S+)&long=(\\S+)\\s+(\\S+)$"
+              "^COPY\\s+(\\S+)\\s+(\\S+)$"
             );
             Matcher setbackupmput = setbackupput.matcher(input);
             if (setbackupmput.matches()) {
               String shortResource = setbackupmput.group(1);
               String longResource = setbackupmput.group(2);
-              String httpVersion = setbackupmput.group(3);
               System.out.println(
                 "SAVING BACKUP: " + shortResource + " " + longResource
               );
