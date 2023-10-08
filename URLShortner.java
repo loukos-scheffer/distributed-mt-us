@@ -23,7 +23,6 @@ import java.net.URI;
 import java.time.Duration;
 import java.net.InetAddress;
 import javaSQLite.*;
-import javaSQLite.*;
 
 
 public class URLShortner {
@@ -162,9 +161,8 @@ public class URLShortner {
           new BufferedReader(new InputStreamReader(connect.getInputStream()));
         out = new PrintWriter(connect.getOutputStream());
         dataOut = new BufferedOutputStream(connect.getOutputStream());
-        String input;
-        
-        while ((input = in.readLine()) != null) {
+
+        String input = in.readLine();
 
         if (verbose) System.out.println("first line: " + input);
 
@@ -206,14 +204,14 @@ public class URLShortner {
           return;
         }
 
-          Pattern pput = Pattern.compile(
-            "^PUT\\s+/\\?short=(\\S+)&long=(\\S+)\\s+(\\S+)$"
-          );
-          Matcher mput = pput.matcher(input);
-          if (mput.matches()) {
-            String shortResource = mput.group(1);
-            String longResource = mput.group(2);
-            String httpVersion = mput.group(3);
+        Pattern pput = Pattern.compile(
+          "^PUT\\s+/\\?short=(\\S+)&long=(\\S+)\\s+(\\S+)$"
+        );
+        Matcher mput = pput.matcher(input);
+        if (mput.matches()) {
+          String shortResource = mput.group(1);
+          String longResource = mput.group(2);
+          String httpVersion = mput.group(3);
 
 
             String contentMimeType = null;
@@ -261,14 +259,14 @@ public class URLShortner {
               String shortResource = mget.group(1);
               String httpVersion = mget.group(2);
 
-              String longResource = find(shortResource);
-              if (longResource != null) {
-                File file = new File(WEB_ROOT, REDIRECT);
-                int fileLength = (int) file.length();
-                String contentMimeType = "text/html";
+            String longResource = find(shortResource);
+            if (longResource != null) {
+              File file = new File(WEB_ROOT, REDIRECT);
+              int fileLength = (int) file.length();
+              String contentMimeType = "text/html";
 
-                //read content to return to client
-                byte[] fileData = readFileData(file, fileLength);
+              //read content to return to client
+              byte[] fileData = readFileData(file, fileLength);
 
                 out.println("HTTP/1.1 307 Temporary Redirect");
                 out.println("Location: " + longResource);
@@ -288,13 +286,13 @@ public class URLShortner {
               String content = "text/html";
               byte[] fileData = readFileData(file, fileLength);
 
-                out.println("HTTP/1.1 404 File Not Found");
-                out.println("Server: Java HTTP Server/Shortner : 1.0");
-                out.println("Date: " + new Date());
-                out.println("Content-type: " + content);
-                out.println("Content-length: " + fileLength);
-                out.println();
-                out.flush();
+              out.println("HTTP/1.1 404 File Not Found");
+              out.println("Server: Java HTTP Server/Shortner : 1.0");
+              out.println("Date: " + new Date());
+              out.println("Content-type: " + content);
+              out.println("Content-length: " + fileLength);
+              out.println();
+              out.flush();
 
               dataOut.write(fileData, 0, fileLength);
               dataOut.flush();
@@ -320,7 +318,7 @@ public class URLShortner {
         dataOut.write(fileData, 0, fileLength);
         dataOut.flush();
       } catch (Exception e) {
-        System.err.println(e);
+        System.err.println("Server error " + e.getMessage());
       } finally {
         try {
           in.close();
