@@ -22,7 +22,7 @@ import java.net.http.*;
 import java.net.URI;
 import java.time.Duration;
 import java.net.InetAddress;
-
+import javaSQLite.*;
 
 
 public class URLShortner {
@@ -43,9 +43,11 @@ public class URLShortner {
 
   public static String PARTITION_1_NAME = "part1";
   public static String PARTITION_1_BACKUP_HOST = "http://dh2026pc12:59958/";
-
   public static String PARTITION_2_NAME = "part2";
   public static String PARTITION_2_BACKUP_HOST = "http://dh2026pc12:59958/";
+
+  static DB DB = null;
+  static final String DB_URL = "jdbc:sqlite:/virtual/daidkara/example.db";
 
   // verbose mode
   static final boolean verbose = true;
@@ -54,6 +56,7 @@ public class URLShortner {
     try {
       HOSTNAME = InetAddress.getLocalHost().getHostName();
       HOSTNAMEPORT = HOSTNAME + ":" + PORT;
+      DB = new DB();
       System.out.println("Attempting to start server on: " + HOSTNAMEPORT);
       ServerSocket serverConnect = new ServerSocket(PORT);
       System.out.println(
@@ -68,7 +71,6 @@ public class URLShortner {
       } else {
         System.out.println("FAILED TO READ MANIFEST");
       }
-
       // we listen until user halts server execution
       while (true) {
         if (verbose) {
@@ -330,33 +332,15 @@ public class URLShortner {
     }
 
     private static String find(String shortURL) {
-      String longURL = null;
-      try {
-        File file = new File(DATABASE);
-        FileReader fileReader = new FileReader(file);
-        BufferedReader bufferedReader = new BufferedReader(fileReader);
-        String line;
-        while ((line = bufferedReader.readLine()) != null) {
-          String[] map = line.split("\t");
-          if (map[0].equals(shortURL)) {
-            longURL = map[1];
-            break;
-          }
-        }
-        fileReader.close();
-      } catch (IOException e) {}
-      return longURL;
+      String[] urlPairing = DB.getLongURL(DB_URL, shortURL);
+      if(urlPairing[1] != null) {
+        return urlPairing[1];
+      }
+      return null;
     }
 
     private static void save(String shortURL, String longURL) {
-      try {
-        File file = new File(DATABASE);
-        FileWriter fw = new FileWriter(file, true);
-        BufferedWriter bw = new BufferedWriter(fw);
-        PrintWriter pw = new PrintWriter(fw);
-        pw.println(shortURL + "\t" + longURL);
-        pw.close();
-      } catch (IOException e) {}
+      DB.write(DB_URL, shortURL, longURL);
       return;
     }
 
