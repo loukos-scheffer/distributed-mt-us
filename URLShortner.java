@@ -263,16 +263,6 @@ public class URLShortner {
               out.flush();
               dataOut.write(fileData, 0, fileLength);
               dataOut.flush();
-              // HttpClient client = HttpClient
-              //   .newBuilder()
-              //   .connectTimeout(Duration.ofSeconds(10))
-              //   .build();
-              // HttpRequest req = HttpRequest
-              //   .newBuilder()
-              //   .uri(URI.create(PARTITION_1_BACKUP_HOST + "set-backup?short=test&long=https://www.google.ca/"))
-              //   .PUT(HttpRequest.BodyPublishers.noBody())
-              //   .build();
-              // client.send(req, HttpResponse.BodyHandlers.ofString()).body();
             } else {
               Pattern pget = Pattern.compile("^GET\\s+/(\\S+)\\s+(\\S+)$");
               Matcher mget = pget.matcher(input);
@@ -318,24 +308,7 @@ public class URLShortner {
                   dataOut.flush();
                 }
               }
-            }
-            // File file = new File(WEB_ROOT, METHOD_NOT_SUPPORTED);
-            // int fileLength = (int) file.length();
-            // String contentMimeType = "text/html";
-
-            // //read content to return to client
-            // byte[] fileData = readFileData(file, fileLength);
-
-            // out.println("HTTP/1.1 405 METHOD NOT ALLOWED");
-            // out.println("Server: Java HTTP Server/Shortner : 1.0");
-            // out.println("Date: " + new Date());
-            // out.println("Content-type: " + contentMimeType);
-            // out.println("Content-length: " + fileLength);
-            // out.println();
-            // out.flush();
-
-            // dataOut.write(fileData, 0, fileLength);
-            // dataOut.flush();
+            };
           } else {
             System.out.println("NON MATCHING LINE: " + line);
           }
@@ -360,15 +333,21 @@ public class URLShortner {
 
     private static String find(String shortURL) {
       String[] urlPairing = DB.getLongURL(DB_URL, shortURL);
-      if (urlPairing[1] != null) {
+      if (urlPairing == null) {
+        System.exit(0);
+      }
+      if (urlPairing[1] != "") {
         return urlPairing[1];
       }
       return null;
     }
 
-    private static void save(String shortURL, String longURL) {
-      DB.write(DB_URL, shortURL, longURL);
-      return;
+    private static boolean save(String shortURL, String longURL) {
+      boolean saved = DB.write(DB_URL, shortURL, longURL);
+      if (saved == false) {
+        System.exit(0);
+      }
+      return saved;
     }
 
     private static byte[] readFileData(File file, int fileLength)
