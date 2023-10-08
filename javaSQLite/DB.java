@@ -1,5 +1,7 @@
 package javaSQLite;
 
+package javaSQLite;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -127,8 +129,6 @@ public class DB {
 			if (count > 1){
 				System.out.println("multiple matching shortURLs in DB");
 			}
-			System.out.println("1 " + pairing[0]);
-			System.out.println("2 " + pairing[1]);
 			try {
 				if (conn != null) {
 						conn.close();
