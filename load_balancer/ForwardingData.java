@@ -20,6 +20,7 @@ public class ForwardingData{
     private ConcurrentHashMap<Integer, ArrayList<String>> targetsByPart = new ConcurrentHashMap<Integer,ArrayList<String>>();
     private ConnectionPool connectionPool;
     private URLHash requestHash = null;
+    private boolean useCaching;
     private CacheWithExpiry cache;  
 
 
@@ -32,11 +33,12 @@ public class ForwardingData{
     private int replicationFactor;
 
 
-    public ForwardingData(int poolSize, int replicationFactor) {
+    public ForwardingData(int poolSize, int replicationFactor, boolean useCaching) {
         this.connectionPool = new ConnectionPool(poolSize);
         this.requestHash = new URLHash(1);
         this.replicationFactor = replicationFactor;
         this.cache = new CacheWithExpiry();
+        this.useCaching = useCaching
     }
 
     // Supported operations on requestHash
@@ -76,7 +78,7 @@ public class ForwardingData{
             targetsByPart.put(i, assigned);
         }
 
-        try (FileWriter fw = new FileWriter("config/manifest.txt", false);
+        try (FileWriter fw = new FileWriter("config/manifest", false);
                 BufferedWriter writer = new BufferedWriter(fw)) {
                 for (Map.Entry<Integer, ArrayList<String>> entry: targetsByPart.entrySet()) {
                     int partId = entry.getKey();
@@ -242,6 +244,10 @@ public class ForwardingData{
 
     public void cacheRequest(String request, String response) {
         cache.put(request, response);
+    }
+
+    public boolean isUsingCaching(){
+        return useCaching;
     }
 
 

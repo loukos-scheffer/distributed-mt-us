@@ -22,11 +22,13 @@ public class ProxyServer {
     private final int poolSize=32;
     private final int numHandlers=32;
     private final int replicationFactor=2;
+    private final boolean useCaching = true;
+
 
 
     public ProxyServer() 
         throws IOException {
-        this.fd = new ForwardingData(poolSize, replicationFactor);
+        this.fd = new ForwardingData(poolSize, replicationFactor, useCaching);
         this.md = new MonitoringData();
     }
 

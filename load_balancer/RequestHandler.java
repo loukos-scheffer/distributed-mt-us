@@ -95,6 +95,8 @@ public class RequestHandler implements Runnable {
                 }
             }
 
+            isCacheable = fd.isUsingCaching();
+
             if (shortResource == null) {
                 System.err.format("Could not extract short from request: %s", requestHead);
                 return;

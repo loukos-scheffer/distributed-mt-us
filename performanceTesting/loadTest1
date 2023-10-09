@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# Load testing using 4000 GET requests from 4 clients, using two urls that map to different partitions
+cat getURLS | parallel 'ab -c 2 -n 2000 {}'
+
+
+
+
+# Merge the results into a single plot 
