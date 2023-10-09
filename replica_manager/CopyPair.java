@@ -15,7 +15,6 @@ public class CopyPair implements Runnable {
     String longURL;
     String currentHostname;
     HashMap<Integer, ManifestEntry> manifestEntries;
-    public boolean success = true;
     private URLHash hash;
 
     public CopyPair(String shortURL, String longURL, String currentHostname){
@@ -49,9 +48,20 @@ public class CopyPair implements Runnable {
                 System.out.println("IN COPYPAIR" + line);
 
                 if (!line.equals("200")){
-                    this.success = false;
                     System.out.println("COPY request to node 2 failed.");
-                    // TODO replace with a log file
+                    Thread.sleep(100);
+                    // retry
+                    socketNode2 = new Socket(hostnameNode2, portNode2);
+
+                    node2Writer = new BufferedWriter(new OutputStreamWriter(socketNode2.getOutputStream()));
+                    node2Reader = new BufferedReader(new InputStreamReader(socketNode2.getInputStream()));
+
+                    node2Writer.write(requestString, 0, requestString.length());
+                    line = node2Reader.readLine();
+                    if (!line.equals("200")){
+                        System.out.println("COPY request to node 2 failed twice.");
+                    }
+
                 }
             }
             else if (this.currentHostname.equals(hostnameNode2)){
@@ -64,15 +74,26 @@ public class CopyPair implements Runnable {
                 String line = node1Reader.readLine();
                 System.out.println("IN COPYPAIR" + line);
                 if (!line.equals("200")){
-                    this.success = false;
                     System.out.println("COPY request to node 1 failed.");
-                    // TODO replace with a log file
+                    Thread.sleep(100);
+                    // retry on failure
+
+                    socketNode1 = new Socket(hostnameNode1, portNode1);
+
+                    node1Writer = new BufferedWriter(new OutputStreamWriter(socketNode1.getOutputStream()));
+                    node1Reader = new BufferedReader(new InputStreamReader(socketNode1.getInputStream()));
+
+                    node1Writer.write(requestString, 0, requestString.length());
+                    line = node1Reader.readLine();
+                    if (!line.equals("200")){
+                        System.out.println("COPY request to node 1 failed twice.");
+                    }
                 }
 
             } else {
                 System.out.println("did not match either hostname in the manifest.");
             }
-        } catch (IOException e) {
+        } catch (IOException | InterruptedException e) {
             e.getMessage();
         }
     }

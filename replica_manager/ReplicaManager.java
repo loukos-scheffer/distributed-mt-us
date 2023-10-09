@@ -39,7 +39,7 @@ public class ReplicaManager {
 
         CopyPair copyPair = new CopyPair(shortURL, longURL, this.currentHostname);
         workers.execute(copyPair);
-        return copyPair.success;
+        return true;
     }
 
     public boolean distribute(){
