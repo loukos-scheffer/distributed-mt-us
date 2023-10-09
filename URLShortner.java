@@ -11,13 +11,18 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.URI;
 import java.net.URL;
+import java.net.http.*;
+import java.time.Duration;
 import java.util.Date;
 import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javaSQLite.*;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -31,32 +36,49 @@ public class URLShortner {
   static final String REDIRECT_RECORDED = "redirect_recorded.html";
   static final String REDIRECT = "redirect.html";
   static final String NOT_FOUND = "notfound.html";
+  static final String BAD_REQUEST = "bad_request.html";
   static final String DATABASE = "database.txt";
+  static final String MANIFEST = "./config/manifest";
+  static String HOSTNAME = null;
+  static String HOSTNAMEPORT = null;
   // port to listen connection
   static final int PORT = 59958;
 
   public static String PARTITION_1_NAME = "part1";
   public static String PARTITION_1_BACKUP_HOST = "http://dh2026pc12:59958/";
-
   public static String PARTITION_2_NAME = "part2";
   public static String PARTITION_2_BACKUP_HOST = "http://dh2026pc12:59958/";
+
+  static DB DB = null;
+  static final String DB_URL = "jdbc:sqlite:/virtual/daidkara/example.db";
 
   // verbose mode
   static final boolean verbose = true;
 
   public static void main(String[] args) {
     try {
-      ServerSocket serverConnect = new ServerSocket(Integer.parseInt(args[0]));
+      HOSTNAME = InetAddress.getLocalHost().getHostName();
+      HOSTNAMEPORT = HOSTNAME + ":" + PORT;
+      DB = new DB();
+      System.out.println("Attempting to start server on: " + HOSTNAMEPORT);
+      ServerSocket serverConnect = new ServerSocket(PORT);
       System.out.println(
         "Server started.\nListening for connections on port : " +
         PORT +
         " ...\n"
       );
-
+      System.out.println("Reading Parition Information from manifest...");
+      boolean readSuccess = updateFromManifest();
+      if (readSuccess) {
+        System.out.println("Sucessfully read partition information");
+      } else {
+        System.out.println("FAILED TO READ MANIFEST");
+      }
       // we listen until user halts server execution
       while (true) {
-
-
+        if (verbose) {
+          System.out.println("Connecton opened. (" + new Date() + ")");
+        }
         HandleRequestWorker worker = new HandleRequestWorker(
           serverConnect.accept()
         );
@@ -64,6 +86,77 @@ public class URLShortner {
       }
     } catch (IOException e) {
       System.err.println("Server Connection error : " + e.getMessage());
+    }
+  }
+
+  private static boolean updateFromManifest() {
+    try {
+      File file = new File(MANIFEST);
+      FileReader fileReader = new FileReader(file);
+      BufferedReader bufferedReader = new BufferedReader(fileReader);
+      String line;
+      String HOSTNAME1 = null;
+      String HOSTNAME1PARTITION = null;
+      String HOSTNAME2 = null;
+      String HOSTNAME2PARTITION = null;
+      while ((line = bufferedReader.readLine()) != null) {
+        String[] map = line.split(",");
+        String partitionNumber = map[0];
+        String hostOne = map[1];
+        String hostTwo = map[2];
+        if (hostOne.equals(HOSTNAMEPORT)) {
+          if (HOSTNAME1 != null && !HOSTNAME1.isEmpty()) {
+            HOSTNAME2 = hostTwo;
+            HOSTNAME2PARTITION = partitionNumber;
+          } else {
+            HOSTNAME1 = hostTwo;
+            HOSTNAME1PARTITION = partitionNumber;
+          }
+        }
+        if (hostTwo.equals(HOSTNAMEPORT)) {
+          if (HOSTNAME1 != null && !HOSTNAME1.isEmpty()) {
+            HOSTNAME2 = hostOne;
+            HOSTNAME2PARTITION = partitionNumber;
+          } else {
+            HOSTNAME1 = hostOne;
+            HOSTNAME1PARTITION = partitionNumber;
+          }
+        }
+      }
+      fileReader.close();
+      if (
+        HOSTNAME1 != null &&
+        !HOSTNAME1.isEmpty() &&
+        HOSTNAME2 != null &&
+        !HOSTNAME2.isEmpty() &&
+        HOSTNAME1PARTITION != null &&
+        !HOSTNAME1PARTITION.isEmpty() &&
+        HOSTNAME2PARTITION != null &&
+        !HOSTNAME2PARTITION.isEmpty()
+      ) {
+        PARTITION_1_NAME = HOSTNAME1PARTITION;
+        PARTITION_1_BACKUP_HOST = "http://" + HOSTNAME1 + "/";
+        PARTITION_2_NAME = HOSTNAME2PARTITION;
+        PARTITION_2_BACKUP_HOST = "http://" + HOSTNAME2 + "/";
+        System.out.println("Sucessfully read partition information");
+        System.out.println(
+          "PARTITION1 NAME,HOST : " +
+          PARTITION_1_NAME +
+          "," +
+          PARTITION_1_BACKUP_HOST
+        );
+        System.out.println(
+          "PARTITION1 NAME,HOST : " +
+          PARTITION_2_NAME +
+          "," +
+          PARTITION_2_BACKUP_HOST
+        );
+        return true;
+      }
+      System.out.println("FAILED TO READ MANIFEST");
+      return false;
+    } catch (IOException e) {
+      return false;
     }
   }
 
@@ -100,110 +193,147 @@ public class URLShortner {
           new BufferedReader(new InputStreamReader(connect.getInputStream()));
         out = new PrintWriter(connect.getOutputStream());
         dataOut = new BufferedOutputStream(connect.getOutputStream());
+        String line;
         String input;
-        
-        while ((input = in.readLine()) != null) {
+        while ((line = in.readLine()) != null) {
+          if (
+            line.startsWith("GET") ||
+            line.startsWith("PUT") ||
+            line.startsWith("DISTRIBUTE")
+          ) {
+            input = line;
+            if (verbose) System.out.println("first line: " + input);
 
-          if (!isRequestHeader(input)) {
-            continue;
-          }
-          if (verbose) System.out.println("first line: " + input);
-
-          Pattern pput = Pattern.compile(
-            "^PUT\\s+/\\?short=(\\S+)&long=(\\S+)\\s+(\\S+)$"
-          );
-          Matcher mput = pput.matcher(input);
-          if (mput.matches()) {
-            String shortResource = mput.group(1);
-            String longResource = mput.group(2);
-            String httpVersion = mput.group(3);
-
-            save(shortResource, longResource);
-
-            // HttpClient client = HttpClient
-            //   .newBuilder()
-            //   .connectTimeout(Duration.ofSeconds(10))
-            //   .build();
-            // HttpRequest req = HttpRequest
-            //   .newBuilder()
-            //   .uri(URI.create(PARTITION_1_BACKUP_HOST + "set-backup?id=1?short=test&long=https://www.google.ca/"))
-            //   .PUT(HttpRequest.BodyPublishers.noBody())
-            //   .build();
-            // client.send(req, HttpResponse.BodyHandlers.ofString()).body();
-
-            File file = new File(WEB_ROOT, REDIRECT_RECORDED);
-            int fileLength = (int) file.length();
-            String contentMimeType = "text/html";
-            //read content to return to client
-            byte[] fileData = readFileData(file, fileLength);
-
-            out.println("HTTP/1.1 200 OK");
-            out.println("Server: Java HTTP Server/Shortner : 1.0");
-            out.println("Date: " + new Date());
-            out.println("Content-type: " + contentMimeType);
-            out.println("Content-length: " + fileLength);
-            out.println();
-            out.flush();
-
-            dataOut.write(fileData, 0, fileLength);
-            dataOut.flush();
-          } else {
-            Pattern pget = Pattern.compile("^(\\S+)\\s+/(\\S+)\\s+(\\S+)$");
-            Matcher mget = pget.matcher(input);
-            if (mget.matches()) {
-              String method = mget.group(1);
-              String shortResource = mget.group(2);
-              String httpVersion = mget.group(3);
-
-              String longResource = find(shortResource);
-              if (longResource != null) {
-                File file = new File(WEB_ROOT, REDIRECT);
-                int fileLength = (int) file.length();
-                String contentMimeType = "text/html";
-
-                //read content to return to client
-                byte[] fileData = readFileData(file, fileLength);
-
-                // out.println("HTTP/1.1 301 Moved Permanently");
-                out.println("HTTP/1.1 307 Temporary Redirect");
-                out.println("Location: " + longResource);
-                out.println("Server: Java HTTP Server/Shortner : 1.0");
-                out.println("Date: " + new Date());
-                out.println("Content-type: " + contentMimeType);
-                out.println("Content-length: " + fileLength);
-                out.println();
-                out.flush();
-
-
-                dataOut.write(fileData, 0, fileLength);
-                dataOut.flush();
-
-                System.out.println("Wrote HTML response");
-
+            Pattern distributeput = Pattern.compile(
+              "^DISTRIBUTE\\s+/(\\S+)\\s+(\\S+)$"
+            );
+            Matcher distributemput = distributeput.matcher(input);
+            if (distributemput.matches()) {
+              String numHosts = distributemput.group(1);
+              String httpVersion = distributemput.group(2);
+              System.out.println("DISTRIBUTE TO " + numHosts);
+              boolean success = updateFromManifest();
+              if (success) {
+                out.println("HTTP/1.1 200 OK");
               } else {
-                File file = new File(WEB_ROOT, FILE_NOT_FOUND);
-                int fileLength = (int) file.length();
-                String content = "text/html";
-                byte[] fileData = readFileData(file, fileLength);
-
-                out.println("HTTP/1.1 404 File Not Found");
-                out.println("Server: Java HTTP Server/Shortner : 1.0");
-                out.println("Date: " + new Date());
-                out.println("Content-type: " + content);
-                out.println("Content-length: " + fileLength);
-                out.println();
-                out.flush();
-
-                dataOut.write(fileData, 0, fileLength);
-                dataOut.flush();
+                out.println("HTTP/1.1 409 Conflict");
               }
+              out.println("Server: Java HTTP Server/Shortner : 1.0");
+              out.println("Date: " + new Date());
+              out.println();
+              out.flush();
             }
+
+            Pattern setbackupput = Pattern.compile(
+              "^COPY\\s+(\\S+)\\s+(\\S+)$"
+            );
+            Matcher setbackupmput = setbackupput.matcher(input);
+            if (setbackupmput.matches()) {
+              String shortResource = setbackupmput.group(1);
+              String longResource = setbackupmput.group(2);
+              System.out.println(
+                "SAVING BACKUP: " + shortResource + " " + longResource
+              );
+              save(shortResource, longResource);
+              out.println("HTTP/1.1 200 OK");
+              out.println();
+              out.flush();
+            }
+
+            Pattern pput = Pattern.compile(
+              "^PUT\\s+/\\?short=(\\S+)&long=(\\S+)\\s+(\\S+)$"
+            );
+            Matcher mput = pput.matcher(input);
+            if (mput.matches()) {
+              String shortResource = mput.group(1);
+              String longResource = mput.group(2);
+              String httpVersion = mput.group(3);
+
+              String contentMimeType = null;
+              int fileLength = 0;
+              byte[] fileData = null;
+              if (
+                shortResource == null ||
+                shortResource.isEmpty() ||
+                longResource == null ||
+                longResource.isEmpty()
+              ) {
+                File file = new File(WEB_ROOT, BAD_REQUEST);
+                fileLength = (int) file.length();
+                contentMimeType = "text/html";
+                fileData = readFileData(file, fileLength);
+                out.println("HTTP/1.1 400 BAD REQUEST");
+              } else {
+                save(shortResource, longResource);
+                File file = new File(WEB_ROOT, REDIRECT_RECORDED);
+                fileLength = (int) file.length();
+                contentMimeType = "text/html";
+                fileData = readFileData(file, fileLength);
+                out.println("HTTP/1.1 201 OK");
+              }
+              out.println("Server: Java HTTP Server/Shortner : 1.0");
+              out.println("Date: " + new Date());
+              out.println("Content-type: " + contentMimeType);
+              out.println("Content-length: " + fileLength);
+              out.println();
+              out.flush();
+              dataOut.write(fileData, 0, fileLength);
+              dataOut.flush();
+            } else {
+              Pattern pget = Pattern.compile("^GET\\s+/(\\S+)\\s+(\\S+)$");
+              Matcher mget = pget.matcher(input);
+              if (mget.matches()) {
+                String shortResource = mget.group(1);
+                String httpVersion = mget.group(2);
+
+                String longResource = find(shortResource);
+                if (longResource != null) {
+                  File file = new File(WEB_ROOT, REDIRECT);
+                  int fileLength = (int) file.length();
+                  String contentMimeType = "text/html";
+
+                  //read content to return to client
+                  byte[] fileData = readFileData(file, fileLength);
+
+                  out.println("HTTP/1.1 307 Temporary Redirect");
+                  out.println("Location: " + longResource);
+                  out.println("Server: Java HTTP Server/Shortner : 1.0");
+                  out.println("Date: " + new Date());
+                  out.println("Content-type: " + contentMimeType);
+                  out.println("Content-length: " + fileLength);
+                  out.println();
+                  out.flush();
+
+                  dataOut.write(fileData, 0, fileLength);
+                  dataOut.flush();
+                } else {
+                  File file = new File(WEB_ROOT, FILE_NOT_FOUND);
+                  int fileLength = (int) file.length();
+                  String content = "text/html";
+                  byte[] fileData = readFileData(file, fileLength);
+
+                  out.println("HTTP/1.1 404 File Not Found");
+                  out.println("Server: Java HTTP Server/Shortner : 1.0");
+                  out.println("Date: " + new Date());
+                  out.println("Content-type: " + content);
+                  out.println("Content-length: " + fileLength);
+                  out.println();
+                  out.flush();
+
+                  dataOut.write(fileData, 0, fileLength);
+                  dataOut.flush();
+                }
+              }
+            };
+          } else {
+            System.out.println("NON MATCHING LINE: " + line);
           }
       }
       } catch (Exception e) {
         System.err.println(e);
       } finally {
         try {
+          System.out.println("CLOSING CONNECTION");
           in.close();
           out.close();
           connect.close(); // we close socket connection
@@ -218,34 +348,22 @@ public class URLShortner {
     }
 
     private static String find(String shortURL) {
-      String longURL = null;
-      try {
-        File file = new File(DATABASE);
-        FileReader fileReader = new FileReader(file);
-        BufferedReader bufferedReader = new BufferedReader(fileReader);
-        String line;
-        while ((line = bufferedReader.readLine()) != null) {
-          String[] map = line.split("\t");
-          if (map[0].equals(shortURL)) {
-            longURL = map[1];
-            break;
-          }
-        }
-        fileReader.close();
-      } catch (IOException e) {}
-      return longURL;
+      String[] urlPairing = DB.getLongURL(DB_URL, shortURL);
+      if (urlPairing == null) {
+        System.exit(0);
+      }
+      if (urlPairing[1] != "") {
+        return urlPairing[1];
+      }
+      return null;
     }
 
-    private static void save(String shortURL, String longURL) {
-      try {
-        File file = new File(DATABASE);
-        FileWriter fw = new FileWriter(file, true);
-        BufferedWriter bw = new BufferedWriter(fw);
-        PrintWriter pw = new PrintWriter(fw);
-        pw.println(shortURL + "\t" + longURL);
-        pw.close();
-      } catch (IOException e) {}
-      return;
+    private static boolean save(String shortURL, String longURL) {
+      boolean saved = DB.write(DB_URL, shortURL, longURL);
+      if (saved == false) {
+        System.exit(0);
+      }
+      return saved;
     }
 
     private static byte[] readFileData(File file, int fileLength)
