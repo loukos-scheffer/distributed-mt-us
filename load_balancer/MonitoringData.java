@@ -14,7 +14,7 @@ public class MonitoringData {
     private ConcurrentHashMap<String, Integer> successfulByTarget = new ConcurrentHashMap<String, Integer>();
     private ConcurrentHashMap<String, Integer> failedByTarget = new ConcurrentHashMap<String, Integer>();
     
-
+    private long cacheHits = 0;
 
     public void recordSuccessfulRequest(String targetName) {
         incrementValue(successfulByTarget, targetName);
@@ -27,7 +27,16 @@ public class MonitoringData {
     public void clearRequestStatistics() {
         successfulByTarget.clear();
         failedByTarget.clear();
+        cacheHits = 0;
         
+    }
+
+    public synchronized void recordCacheHit() {
+        cacheHits += 1;
+    }
+
+    public long getNumCacheHits() {
+        return cacheHits;
     }
 
 
