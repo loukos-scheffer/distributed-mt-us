@@ -1,11 +1,16 @@
 package javaSQLite;
 
+import utils.Row;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.PreparedStatement;
+import java.util.ArrayList;
+
 
 public class DB {
 
@@ -132,23 +137,64 @@ public class DB {
         pairing[1] = longURL;
         count++;
       }
-
-      if (count > 1) {
-        System.out.println("multiple matching shortURLs in DB");
-      }
-      try {
-        if (conn != null) {
-          conn.close();
-        }
-      } catch (SQLException ex) {
-        System.out.println(ex.getMessage());
-      }
-      return pairing;
-    } catch (SQLException e) {
-      System.out.println(e.getMessage());
-      return null;
-    }
-  }
+			// if its not then add it
+			if (!inDB){ 
+				String insertSQL = "INSERT INTO urls (shortURL, longURL) VALUES (?, ?)";
+				ps = conn.prepareStatement(insertSQL);
+				ps.setString(1, shortURL);
+				ps.setString(2, longURL);
+				ps.execute();
+			}
+			// if it is then update the 
+			else {
+				String updateSQL = "UPDATE urls SET shortURL = (?), longURL = (?) WHERE shortURL = (?);";
+				ps = conn.prepareStatement(updateSQL);
+				ps.setString(1, shortURL);
+				ps.setString(2, longURL);
+				ps.setString(3, shortURL);
+				ps.execute();
+			}
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+        	} finally {
+            		try {
+                		if (conn != null) {
+                    			conn.close();
+                		}
+            		} catch (SQLException ex) {
+                		System.out.println(ex.getMessage());
+            		}
+		}
+	}
+	public static ArrayList<Row> read(String url) {
+		Connection conn=null;
+		try {
+			conn = connect(url);
+			Statement stmt  = conn.createStatement();
+			String sql = "SELECT shortURL, longURL FROM urls";
+			ResultSet rs = stmt.executeQuery(sql);
+			int count = 0;
+			ArrayList<Row> dump = new ArrayList<Row>();
+			while (rs.next()) {
+				Row rowEntry = new Row(rs.getString("shortURL"), rs.getString("longURL"));
+				dump.add(rowEntry);
+				count ++;
+			}
+			System.out.println(count);
+			return dump;
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+        	} finally {
+            		try {
+                		if (conn != null) {
+                    			conn.close();
+                		}
+            		} catch (SQLException ex) {
+                		System.out.println(ex.getMessage());
+            		}
+			return null;
+		}
+	}
 
   public static void delete(String DBurl, String queryURL) {
     Connection conn = null;
