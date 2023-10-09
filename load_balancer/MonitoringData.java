@@ -14,8 +14,6 @@ public class MonitoringData {
     private ConcurrentHashMap<String, Integer> successfulByTarget = new ConcurrentHashMap<String, Integer>();
     private ConcurrentHashMap<String, Integer> failedByTarget = new ConcurrentHashMap<String, Integer>();
     
-    
-    private long maxRTT = 0;
 
 
     public void recordSuccessfulRequest(String targetName) {
@@ -43,14 +41,6 @@ public class MonitoringData {
 
     private void incrementValue(ConcurrentHashMap<String, Integer> map, String key) {
         map.compute(key, (k, v) -> (v == null) ? 1: ((int) v + 1));
-    }
-
-    public synchronized void setMaxRTT(long recordedRTT) {
-        maxRTT = Math.max(maxRTT, recordedRTT);
-    }
-
-    public long getMaxRTT(){
-        return maxRTT;
     }
 
 }

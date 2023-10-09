@@ -63,26 +63,29 @@ public class ForwardingData{
     }
 
     public void assignPartitions() {
+        targetsByPart.clear();
+
         int numTargets = targets.size();
-        ArrayList<String> assigned = new ArrayList<String>();
+        ArrayList<String> assigned; 
 
         for (int i = 0; i < numPartitions; i++) {
+            assigned = new ArrayList<String>();
             for (int j = 0; j < replicationFactor; j++) {
                 assigned.add(targets.get((i + j) % numTargets));
             }
             targetsByPart.put(i, assigned);
         }
 
-        try (FileWriter fw = new FileWriter("config/manifest.txt");
+        try (FileWriter fw = new FileWriter("config/manifest.txt", false);
                 BufferedWriter writer = new BufferedWriter(fw)) {
                 for (Map.Entry<Integer, ArrayList<String>> entry: targetsByPart.entrySet()) {
                     int partId = entry.getKey();
-                    ArrayList<String> hosts = entry.getValue();
-
+                    ArrayList<String> assignedTargets = entry.getValue();
+                    
                     String s = Integer.toString(partId);
 
-                    for (int j = 0; j < hosts.size(); j++){
-                        s = s + "," + hosts.get(j);
+                    for (int j = 0; j < assignedTargets.size(); j++){
+                        s = s + "," + assignedTargets.get(j);
                     } 
                     writer.write(s);
                     writer.newLine();

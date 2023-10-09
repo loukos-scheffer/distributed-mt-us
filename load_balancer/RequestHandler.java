@@ -1,6 +1,7 @@
 package load_balancer;
 
 import java.io.*;
+import java.nio.charset.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
@@ -14,7 +15,6 @@ public class RequestHandler implements Runnable {
     private final Socket client;
     // Stream to which a summary of the request will be written
     private final PrintWriter log;
-    private final PrintWriter err;
     private ForwardingData fd;
     private MonitoringData md;
 
@@ -22,23 +22,24 @@ public class RequestHandler implements Runnable {
     private static Pattern pget = Pattern.compile("^(\\S+)\\s+/(\\S+)\\s+(\\S+)$");
 
 
-    public RequestHandler(Socket client, ForwardingData fd, MonitoringData md, PrintWriter log, PrintWriter err) {
+    public RequestHandler(Socket client, ForwardingData fd, MonitoringData md, PrintWriter log) {
         this.client = client;
         this.fd = fd;
         this.md = md;
         this.log = log;
-        this.err = err;
     }
 
     public void run() {
-        
-        try (BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
-                PrintWriter out = new PrintWriter(client.getOutputStream(), true)) {
-            String request = in.readLine();
-            handleRequest(request, out);
 
+
+        final byte[] request = new byte[1024];
+        int bytesRead;
+
+        try (BufferedInputStream streamFromClient = new BufferedInputStream(client.getInputStream());) {
+            bytesRead = streamFromClient.read(request);
+            handleRequest(request, bytesRead);
         } catch (IOException e) {
-            System.err.println("Could not read request from client");
+            System.err.println("Client conection dropped before request could be forwarded");
         } finally {
             try {
                 if (client != null) {
@@ -49,35 +50,41 @@ public class RequestHandler implements Runnable {
     }
 
 
-    public void handleRequest(String request, PrintWriter out) {
+    public void handleRequest(byte[] request, int bytesRead) {
 
-            char[] reply = new char[4096];
+            char[] response = new char[4096];
+            String requestStr = null;
 
+            try (InputStream in = new ByteArrayInputStream(request);
+                 BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
+                requestStr = reader.readLine();
+            } catch (IOException e) {}
+            
             String hostname = null;
             int portnum = -1;
-            
 
             String targetName;
             String targetInfo[];
 
-            int bytesRead = 0;
             int bytesResponse = 0;
+            int fileLength = 0;
 
             Socket server = null;
 
-            Matcher mput = pput.matcher(request);
+            Matcher mput = pput.matcher(requestStr);
             String shortResource = null;
 
             if (mput.matches()) {
                 shortResource = mput.group(1);
             } else {
-                Matcher mget = pget.matcher(request);
+                Matcher mget = pget.matcher(requestStr);
                 if (mget.matches()) {
-                    shortResource = mget.group(1);
+                    shortResource = mget.group(2);
                 }
             }
 
             if (shortResource == null) {
+                System.err.println("Could not extract short from client request");
                 return;
             }
             
@@ -88,52 +95,55 @@ public class RequestHandler implements Runnable {
             portnum = Integer.parseInt(targetInfo[1]);
 
             if (hostname == null || portnum < 0) {
-                err.println("Could not obtain hostname or portnum for target");
+                System.err.println("Could not obtain hostname or portnum for target");
                 return;
             }
-
 
             try {
                 server = fd.connect(targetName);
+                // server = new Socket(hostname, portnum);
             } catch (IOException e){
-                err.format("Unable to establish connection with %s %n", hostname);
+                System.err.format("Unable to establish connection with %s %n", hostname);
             }
             // Forward the request to the server, and wait for the response
-            try {
-                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(server.getOutputStream()));
-                BufferedReader reader = new BufferedReader(new InputStreamReader(server.getInputStream()));
-                
-                
-                request = String.format("%s%n", request);
-                writer.write(request, 0, request.length());
-                writer.flush();
+            BufferedOutputStream streamToServer; 
+            BufferedReader reader;
 
-                bytesResponse = reader.read(reply, 0, 4096);
-                if (bytesResponse == -1) {
-                    System.err.println("Could not read response from server");
+            try {
+                streamToServer = new BufferedOutputStream(server.getOutputStream());
+                reader = new BufferedReader(new InputStreamReader(server.getInputStream()));
+                streamToServer.write(request, 0, bytesRead);
+                streamToServer.flush();
+                bytesResponse = reader.read(response, 0, 4096);
+
+                if (bytesResponse < 200) { 
+                    bytesResponse += reader.read(response, bytesResponse, 4096 - bytesResponse);
                 }
             } catch (IOException e) {
-                err.format("Request forwarding failed: target %s unreachable %n", hostname);
-                // fd.recordUnresponsiveTarget(hostname + ":" + portnum);
+                System.err.println(e);
             }
+            
+            PrintWriter out;
 
             try {
-                fd.closeConnection(targetName, server);
+                out = new PrintWriter(client.getOutputStream());
+                out.print(response);
+                out.flush();
             } catch (IOException e) {
-                md.recordFailedRequest(targetName);
-                return;
+                System.out.println("Could not return response to client");
+            }
+                
+                
+            try {
+                fd.closeConnection(targetName, server);
+                // server.close();
+            } catch (IOException e) {
+                System.err.println(e);
             }
 
-
-
-            // log.format("node=%s, short=%s %n", hostname, shortResource);
-            md.recordSuccessfulRequest(targetName);
             
-
-
-            // Lastly, write the server response to client 
-            out.print(reply);
-            out.flush();
+            log.format("node=%s, short=%s %n", hostname, shortResource);
+            md.recordSuccessfulRequest(targetName);
     
     }
         

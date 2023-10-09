@@ -44,7 +44,7 @@ public class MonitoringApp implements Runnable {
         long failed;
 
 
-        System.out.println("=====================");
+        System.out.format("== Monitoring App ==%n");
         for (String targetName: successfulByTarget.keySet()) {
             successful = (successfulByTarget.get(targetName) == null) ? 0 : successfulByTarget.get(targetName);
             failed = (failedByTarget.get(targetName) == null) ? 0 : failedByTarget.get(targetName);
