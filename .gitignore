@@ -7,6 +7,6 @@ lb_events.txt
 *.class
 
 # Logging and config directory
-log
-config/*
-plotting/*
+log/
+config/
+plotting/
