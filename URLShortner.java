@@ -65,7 +65,7 @@ public class URLShortner {
         return;
       }
       PORT = Integer.parseInt(args[0]);
-      DB_URL = DB_URL;
+      DB_URL = args[1];
       HOSTNAME = InetAddress.getLocalHost().getHostName();
       HOSTNAMEPORT = HOSTNAME + ":" + PORT;
       replicaManager = new ReplicaManager(DB_URL, HOSTNAME);
@@ -280,7 +280,7 @@ public class URLShortner {
                 fileData = readFileData(file, fileLength);
                 out.println("HTTP/1.1 400 BAD REQUEST");
               } else {
-                if (replicaManager.replicate(input.getBytes())){
+                if (!replicaManager.replicate(input.getBytes())){
                   File file = new File(WEB_ROOT, INTERNAL_SERVER_ERROR);
                   fileLength = (int) file.length();
                   contentMimeType = "text/html";

@@ -26,7 +26,6 @@ public class RequestHandler implements Runnable {
         this.fd = fd;
         this.md = md;
         this.log = log;
-        this.err = err;
     }
 
     public void run() {

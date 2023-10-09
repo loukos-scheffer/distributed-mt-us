@@ -18,7 +18,7 @@ public class ManifestReader {
             HashMap<Integer, ManifestEntry> manifestEntries = new HashMap<Integer, ManifestEntry>();
             while ((line = bufferedReader.readLine()) != null) {          
                 String[] map = line.split(",");
-                System.out.println("MAP[0]: " + map[0].getClass());
+                System.out.println("MAP[0]: " + map[0]);
                 int partitionNumber = Integer.parseInt(map[0]);
                 String hostOne = map[1];
                 String hostTwo = map[2];

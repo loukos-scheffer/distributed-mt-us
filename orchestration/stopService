@@ -1,11 +1,12 @@
 #!/bin/bash
 
+PROJECT_ROOT="`pwd`/../"
 # Close the url shortener service on all hosts
 for host in `cat ../config/allhosts`
 do 
     readarray -d : -t info <<< $host
     echo "Killing URLShortener service on ${info[0]}:${info[1]}"
-    ssh "${info[0]}" "fuser -k -TERM -n tcp ${info[1]}; " > /dev/null
+    ssh "${info[0]}" "cd $PWD; ./stopServiceLocal ${info[1]}" > /dev/null
 done
 
 echo "STOP" | nc -q 0 localhost 8081

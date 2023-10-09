@@ -38,7 +38,7 @@ public class ForwardingData{
         this.requestHash = new URLHash(1);
         this.replicationFactor = replicationFactor;
         this.cache = new CacheWithExpiry();
-        this.useCaching = useCaching
+        this.useCaching = useCaching;
     }
 
     // Supported operations on requestHash

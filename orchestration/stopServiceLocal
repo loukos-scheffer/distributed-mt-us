@@ -1,2 +1,3 @@
 #!/bin/bash
 
+fuser -k -TERM -n tcp $1;

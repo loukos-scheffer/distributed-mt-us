@@ -1,3 +1,5 @@
 Failed to receive acknowledgement for DISTRIBUTE from dh2026pc05
 Failed to receive acknowledgement for DISTRIBUTE from dh2026pc06
 Failed to receive acknowledgement for DISTRIBUTE from dh2026pc07
+Incomplete response for PUT /?short=arnold&long=http://www.toronto.edu/ HTTP/1.1 from dh2026pc06
+Incomplete response for PUT /?short=arnold&long=http://www.toronto.edu/ HTTP/1.1 from dh2026pc06

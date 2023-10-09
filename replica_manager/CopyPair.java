@@ -4,6 +4,8 @@ import javaSQLite.DB;
 import utils.ManifestEntry;
 import utils.ManifestReader;
 
+import load_balancer.URLHash;
+
 import java.io.*;
 import java.net.Socket;
 import java.util.HashMap;
@@ -12,19 +14,24 @@ public class CopyPair implements Runnable {
     String shortURL;
     String longURL;
     String currentHostname;
-    int partitionNum;
     HashMap<Integer, ManifestEntry> manifestEntries;
     public boolean success = true;
+    private URLHash hash;
 
     public CopyPair(String shortURL, String longURL, String currentHostname){
         this.shortURL = shortURL;
         this.longURL = longURL;
         this.currentHostname = currentHostname;
         this.manifestEntries = new ManifestReader().mapManifestEntries();
+
+        int totalPartitions = manifestEntries.keySet().size();
+        this.hash = new URLHash(totalPartitions);
     }
 
     public void run(){
-        ManifestEntry manifestEntry = this.manifestEntries.get(this.partitionNum);
+        int partitionId = hash.hashDJB2(shortURL);
+
+        ManifestEntry manifestEntry = this.manifestEntries.get(partitionId);
         String hostnameNode1 = manifestEntry.getHostnameNode1();
         String hostnameNode2 = manifestEntry.getHostnameNode2();
         int portNode1 = manifestEntry.getPortNode1();
@@ -39,6 +46,7 @@ public class CopyPair implements Runnable {
 
                 node2Writer.write(requestString, 0, requestString.length());
                 String line = node2Reader.readLine();
+                System.out.println("IN COPYPAIR" + line);
 
                 if (!line.equals("200")){
                     this.success = false;
@@ -54,7 +62,7 @@ public class CopyPair implements Runnable {
 
                 node1Writer.write(requestString, 0, requestString.length());
                 String line = node1Reader.readLine();
-
+                System.out.println("IN COPYPAIR" + line);
                 if (!line.equals("200")){
                     this.success = false;
                     System.out.println("COPY request to node 1 failed.");
