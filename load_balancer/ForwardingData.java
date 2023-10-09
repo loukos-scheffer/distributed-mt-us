@@ -1,8 +1,7 @@
 package load_balancer;
 
 import java.io.*;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.net.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.regex.*;
@@ -21,7 +20,7 @@ public class ForwardingData{
     private ConcurrentHashMap<Integer, ArrayList<String>> targetsByPart = new ConcurrentHashMap<Integer,ArrayList<String>>();
     private ConnectionPool connectionPool;
     private URLHash requestHash = null;
-    private CacheWithExpiry cache = new CacheWithExpiry();
+    private CacheWithExpiry cache;  
 
 
     /* List of currently active targets, and queue of standby targets */
@@ -37,6 +36,7 @@ public class ForwardingData{
         this.connectionPool = new ConnectionPool(poolSize);
         this.requestHash = new URLHash(1);
         this.replicationFactor = replicationFactor;
+        this.cache = new CacheWithExpiry();
     }
 
     // Supported operations on requestHash
@@ -62,7 +62,7 @@ public class ForwardingData{
        return targetName;
     }
 
-    public void assignPartitions() {
+    public int assignPartitions() {
         targetsByPart.clear();
 
         int numTargets = targets.size();
@@ -90,7 +90,10 @@ public class ForwardingData{
                     writer.write(s);
                     writer.newLine();
                 }
-            } catch (IOException e) {}
+            } catch (IOException e) {
+                return -1;
+            }
+        return 0;
     }
 
     public int rehashPairs() {
@@ -102,7 +105,6 @@ public class ForwardingData{
         char[] reply = new char[4096];
 
         String msg;
-
         for (String targetName: targets) {
             targetInfo = targetName.split(":", 2);
             hostname = targetInfo[0];
@@ -114,16 +116,18 @@ public class ForwardingData{
                  BufferedReader reader = new BufferedReader(new InputStreamReader(server.getInputStream()));
                  BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(server.getOutputStream()))){
                 
+                server.setSoTimeout(5000); // 5 seconds
+
                 msg = String.format("DISTRIBUTE %d%n", numPartitions);
                 writer.write(msg, 0, msg.length());
                 writer.flush();
                 
-                bytesResponse = reader.read(reply, 0, 4096);
-                // return with error if we did not receive confirmation from the node
-                if (bytesResponse == -1) {
-                    return -1;
-                }
-                
+                try {
+                    bytesResponse = reader.read(reply, 0, 4096);
+                } catch (SocketTimeoutException e) {
+                    System.err.format("Failed to receive acknowledgement for DISTRIBUTE from %s%n", hostname);
+
+                } 
             } catch (IOException e) {
                 return -1;
             }
@@ -191,22 +195,23 @@ public class ForwardingData{
      */
     public int removeTarget(String targetName, boolean should_replace) {
         // a replacement target is available
-        if (should_replace && !standby.isEmpty()) {
-            int i = targets.indexOf(targetName);
-            if (i == -1) {
-                return -1;
-            }
-            String newTarget = standby.pollFirst();
-            targets.set(i, newTarget);
-        } else { // scale in 
 
+        int removeIndex = targets.indexOf(targetName);
+        String replacement;
+        if (removeIndex == -1) {
+            return -1;
+        }
+
+        if (should_replace) {
+            if (standby.isEmpty()) {
+                return -1;
+            } 
+            replacement = standby.pollFirst();
+            targets.set(removeIndex, replacement);
+        } else {
             targets.remove(targetName);
             numPartitions -= 1;
             updateRequestHash(numPartitions);
-
-            if (should_replace) {
-                return -2;
-            }
         }
 
         // close the connections to the dead target
