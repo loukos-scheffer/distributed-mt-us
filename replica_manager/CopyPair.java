@@ -13,7 +13,7 @@ public class CopyPair implements Runnable {
     String longURL;
     String currentHostname;
     int partitionNum;
-    HashMap<int, ManifestEntry> manifestEntries;
+    HashMap<Integer, ManifestEntry> manifestEntries;
     public boolean success = true;
 
     public CopyPair(String shortURL, String longURL, String currentHostname){

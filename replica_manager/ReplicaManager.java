@@ -1,27 +1,23 @@
 package replica_manager;
 
 import javaSQLite.DB;
-import load_balancer.URLHash;
 
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class ReplicaManager {
-    static final String MANIFEST = "./config/manifest";
     private final ExecutorService workers;
     private final String currentHostname;
     private final String dbURL;
-    //    URLHash hashRequest = null;
     DB db = null;
 
 
 
-    public ReplicaManager (int numWorkers, DB db, String dbURL, String currentHostname) {
-        this.workers = Executors.newFixedThreadPool(numWorkers);
+    public ReplicaManager (String dbURL, String currentHostname) {
+        this.workers = Executors.newFixedThreadPool(4);
         this.currentHostname = currentHostname;
-//        this.hashRequest= new URLHash(partitions);
-        this.db = db;
+        this.db = new DB();
         this.dbURL = dbURL;
     }
 

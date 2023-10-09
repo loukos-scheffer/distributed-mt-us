@@ -23,6 +23,7 @@ import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javaSQLite.*;
+import replica_manager.ReplicaManager;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -32,6 +33,7 @@ public class URLShortner {
   static final File WEB_ROOT = new File(".");
   static final String DEFAULT_FILE = "index.html";
   static final String FILE_NOT_FOUND = "404.html";
+  static final String INTERNAL_SERVER_ERROR = "500.html";
   static final String METHOD_NOT_SUPPORTED = "not_supported.html";
   static final String REDIRECT_RECORDED = "redirect_recorded.html";
   static final String REDIRECT = "redirect.html";
@@ -43,6 +45,7 @@ public class URLShortner {
   static String HOSTNAMEPORT = null;
   // port to listen connection
   static final int PORT = 59958;
+  static ReplicaManager replicaManager;
 
   public static String PARTITION_1_NAME = "part1";
   public static String PARTITION_1_BACKUP_HOST = "http://dh2026pc12:59958/";
@@ -59,6 +62,7 @@ public class URLShortner {
     try {
       HOSTNAME = InetAddress.getLocalHost().getHostName();
       HOSTNAMEPORT = HOSTNAME + ":" + PORT;
+      replicaManager = new ReplicaManager(DB_URL, HOSTNAME);
       DB = new DB();
       System.out.println("Attempting to start server on: " + HOSTNAMEPORT);
       ServerSocket serverConnect = new ServerSocket(PORT);
@@ -213,6 +217,8 @@ public class URLShortner {
               String httpVersion = distributemput.group(2);
               System.out.println("DISTRIBUTE TO " + numHosts);
               boolean success = updateFromManifest();
+              //call replicaManager to distribute the urls,
+              replicaManager.distribute();
               if (success) {
                 out.println("HTTP/1.1 200 OK");
               } else {
@@ -264,12 +270,20 @@ public class URLShortner {
                 fileData = readFileData(file, fileLength);
                 out.println("HTTP/1.1 400 BAD REQUEST");
               } else {
-                save(shortResource, longResource);
-                File file = new File(WEB_ROOT, REDIRECT_RECORDED);
-                fileLength = (int) file.length();
-                contentMimeType = "text/html";
-                fileData = readFileData(file, fileLength);
-                out.println("HTTP/1.1 201 OK");
+                if (replicaManager.replicate(input.getBytes())){
+                  File file = new File(WEB_ROOT, INTERNAL_SERVER_ERROR);
+                  fileLength = (int) file.length();
+                  contentMimeType = "text/html";
+                  fileData = readFileData(file, fileLength);
+                  out.println("HTTP/1.1 500 Internal Server Error");
+                }else {
+                  save(shortResource, longResource);
+                  File file = new File(WEB_ROOT, REDIRECT_RECORDED);
+                  fileLength = (int) file.length();
+                  contentMimeType = "text/html";
+                  fileData = readFileData(file, fileLength);
+                  out.println("HTTP/1.1 201 OK");
+                }
               }
               out.println("Server: Java HTTP Server/Shortner : 1.0");
               out.println("Date: " + new Date());
