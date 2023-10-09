@@ -11,9 +11,9 @@ import java.util.HashMap;
 
 public class DistributePairs implements Runnable {
     private final String dbURL;
-    DB db = null;
-    URLHash urlHash = null;
-    HashMap<int, ManifestEntry> manifestEntries = new HashMap<int, ManifestEntry>();
+    DB db;
+    URLHash urlHash;
+    HashMap<Integer, ManifestEntry> manifestEntries;
     public boolean success = true;
 
 

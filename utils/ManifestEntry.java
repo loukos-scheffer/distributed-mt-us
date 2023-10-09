@@ -1,9 +1,9 @@
 package utils;// this is a class to help us interpret the manifest
 
 public class ManifestEntry {
-    private String Node1 = null;
-    private String Node2 = null;
-    private int partitionNum;
+    private final String Node1;
+    private final String Node2;
+    private final int partitionNum;
     
     public ManifestEntry(int partitionNumber, String Node1, String Node2){
         this.partitionNum = partitionNumber;
@@ -25,12 +25,12 @@ public class ManifestEntry {
 
     public int getPortNode1(){
         String[] map = this.Node1.split(":");
-        return Integer.valueOf(map[1]);
+        return Integer.parseInt(map[1]);
     }
 
     public int getPortNode2(){
         String[] map = this.Node2.split(":");
-        return Integer.valueOf(map[1]);
+        return Integer.parseInt(map[1]);
     }
     public String getHostnameNode1(){
         String[] map = this.Node1.split(":");
