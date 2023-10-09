@@ -36,6 +36,10 @@ public class ConnectionPool{
         for (int i = 0; i < poolSize; i ++) {
             try {
                 Socket socket = new Socket(hostname, portnum);
+<<<<<<< HEAD
+=======
+                socket.setSoTimeout(1000);
+>>>>>>> load_balancer
                 connections.put(socket);
             }  catch (InterruptedException e) {
                 throw new IOException("Could not place connection in pool");

@@ -19,7 +19,7 @@ public class ProxyServer {
     private final MonitoringData md;
 
     // To control throughput
-    private final int poolSize=16;
+    private final int poolSize=32;
     private final int numHandlers=32;
     private final int replicationFactor=2;
 
@@ -51,7 +51,7 @@ public class ProxyServer {
                 error = fd.addTarget(hostname, portnum, false);
 
                 if (error != 0) {
-                    System.err.format("[%s] Target %d unreachable %n", threadName, hostname);
+                    System.err.format("[%s] Target %s unreachable %n", threadName, hostname);
                 }
                 line = r.readLine();
             }  
@@ -63,9 +63,6 @@ public class ProxyServer {
             System.err.format("[%s] Unable to initialize at least one target %n", threadName);
             return -1; // could not connect to any targets
         }
-
-        fd.assignPartitions();
-        fd.rehashPairs();
 
         return 0;
     }
@@ -95,16 +92,9 @@ public class ProxyServer {
 
             // Start a thread that listens for unresponsive target events
             Thread targetRecycler = new Thread(new TargetRecycler(fd));
-            targetRecycler.start();
-
             Thread monitoringApp = new Thread(new MonitoringApp(fd, md));
-            monitoringApp.start();
-
             Thread healthChecker = new Thread(new HealthChecker(fd));
-            healthChecker.start();
             
-            
-
             // In the main thread run a server which listens to scaling events
             ServerSocket adminServer = new ServerSocket(adminPort);
             AdminProtocol ap = new AdminProtocol();
@@ -127,16 +117,32 @@ public class ProxyServer {
 
                         if (!serviceStarted && ap.INIT.matcher(cmd).matches()) {
                             error = initService();
-                            if (error != 0) {
+                            if (error == -1) {
                                 out.println("[ERROR] No targets added");
                                 System.exit(1);
                             } 
                                 
-                            out.format("Load balancer started on port %d %n", localPort);
-                            fd.assignPartitions();
-                            fd.rehashPairs();
                             
+                            error = fd.assignPartitions();
+
+                            if (error == -1) {
+                                out.println("Failed to write updated info to manifest file");
+                                System.exit(1);
+                            }
+
+                            out.println("Waiting for reply for DISTRIBUTE from each target");
+                            error = fd.rehashPairs();
+                            if (error == -1) {
+                                out.println("Rehashing failed or partially completed");
+                                System.exit(1);
+                            }
+
+                            out.format("Load balancer started on port %d %n", localPort);
                             loadBalancer.start();
+                            targetRecycler.start();
+                            monitoringApp.start();
+                            healthChecker.start();
+
                             serviceStarted=true;
                             
                         } else if ((m = ap.ADD.matcher(cmd)).matches()) {

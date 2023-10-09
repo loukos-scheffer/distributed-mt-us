@@ -11,7 +11,7 @@ import load_balancer.*;
 
 public class HealthChecker implements Runnable {
 
-    private int healthCheckInterval = 5;
+    private int healthCheckInterval = 5; // in seconds
 
     private ForwardingData fd;
 
@@ -67,7 +67,6 @@ public class HealthChecker implements Runnable {
                     }
 
                     if (isUnresponsive) {
-                        System.out.format("Health Check for target %s failed. %n", targetName);
                         fd.recordUnresponsiveTarget(targetName);
                     }
 
