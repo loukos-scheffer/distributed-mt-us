@@ -44,7 +44,7 @@ public class URLShortner {
   static String HOSTNAME = null;
   static String HOSTNAMEPORT = null;
   // port to listen connection
-  static final int PORT = 59958;
+  static int PORT = 59958;
   static ReplicaManager replicaManager;
 
   public static String PARTITION_1_NAME = "part1";
@@ -53,13 +53,19 @@ public class URLShortner {
   public static String PARTITION_2_BACKUP_HOST = "http://dh2026pc12:59958/";
 
   static DB DB = null;
-  static final String DB_URL = "jdbc:sqlite:/virtual/daidkara/example.db";
+  static String DB_URL = "jdbc:sqlite:/virtual/daidkara/example.db";
 
   // verbose mode
   static final boolean verbose = true;
 
   public static void main(String[] args) {
     try {
+      if (args.length != 2) {
+        System.out.println("CORRECT USAGE: PORT, DB_URL");
+        return;
+      }
+      PORT = Integer.parseInt(args[0]);
+      DB_URL = DB_URL;
       HOSTNAME = InetAddress.getLocalHost().getHostName();
       HOSTNAMEPORT = HOSTNAME + ":" + PORT;
       replicaManager = new ReplicaManager(DB_URL, HOSTNAME);
