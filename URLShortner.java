@@ -1,15 +1,15 @@
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.PrintWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.OutputStream;
-import java.io.PrintWriter;
 import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.ServerSocket;
@@ -23,6 +23,9 @@ import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javaSQLite.*;
+
+import java.util.*;
+import java.util.concurrent.*;
 
 public class URLShortner {
 
@@ -164,6 +167,20 @@ public class URLShortner {
     public HandleRequestWorker(Socket connection) {
       this.connectionSocket = connection;
     }
+
+    public boolean isRequestHeader(String request) {
+
+      ArrayList<String> cmds = new ArrayList<String>(Arrays.asList("PUT", "GET", "DISTRIBUTE", "COPY"));
+
+      for (String cmd: cmds) {
+        if (request.startsWith(cmd)) {
+          return true;
+        }
+      }
+      return false;
+
+    }
+
 
     public void run() {
       Socket connect = this.connectionSocket;
@@ -311,9 +328,9 @@ public class URLShortner {
           } else {
             System.out.println("NON MATCHING LINE: " + line);
           }
-        }
+      }
       } catch (Exception e) {
-        System.err.println("Server error " + e.getMessage());
+        System.err.println(e);
       } finally {
         try {
           System.out.println("CLOSING CONNECTION");

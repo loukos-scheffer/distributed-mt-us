@@ -23,13 +23,11 @@ public class ProxyServer {
     private final int numHandlers=32;
     private final int replicationFactor=2;
 
-    private final PrintWriter err;
 
     public ProxyServer() 
         throws IOException {
         this.fd = new ForwardingData(poolSize, replicationFactor);
         this.md = new MonitoringData();
-        err = new PrintWriter(new FileWriter("log/error.txt"), true);
     }
 
     public int initService() {
@@ -53,16 +51,16 @@ public class ProxyServer {
                 error = fd.addTarget(hostname, portnum, false);
 
                 if (error != 0) {
-                    err.format("[%s] Target %d unreachable %n", threadName, hostname);
+                    System.err.format("[%s] Target %d unreachable %n", threadName, hostname);
                 }
                 line = r.readLine();
             }  
         } catch (IOException e) {
-            err.format("[%s] config/hosts file does not exist %n", threadName);
+            System.err.format("[%s] config/hosts file does not exist %n", threadName);
         }
 
         if (fd.getTargets().size() == 0) {
-            err.format("[%s] Unable to initialize at least one target %n", threadName);
+            System.err.format("[%s] Unable to initialize at least one target %n", threadName);
             return -1; // could not connect to any targets
         }
 
@@ -72,21 +70,8 @@ public class ProxyServer {
         return 0;
     }
 
-    public void stopService(Thread lbWorker) {
-        try {
-            String hostname;
-            int portnum;
-            int error;
-
-            lbWorker.interrupt();
-
-            for (String targetName: fd.getTargets()) {
-                error = fd.removeTarget(targetName, false);
-            }
-
-        } catch (SecurityException e) {
-            System.err.println(e);
-        }
+    public void stopService() {
+       
     }
 
     public void startProxyServer(){
@@ -100,6 +85,14 @@ public class ProxyServer {
 
             boolean serviceStarted = false;
 
+            Thread loadBalancer = null;
+            try {
+                loadBalancer = new Thread(new LoadBalancer(localPort, numHandlers, fd, md));
+            } catch (IOException e) {
+                System.err.format("Could not bind load balancer to port %d %n", localPort);
+                System.exit(0);
+            }
+
             // Start a thread that listens for unresponsive target events
             Thread targetRecycler = new Thread(new TargetRecycler(fd));
             targetRecycler.start();
@@ -109,8 +102,8 @@ public class ProxyServer {
 
             Thread healthChecker = new Thread(new HealthChecker(fd));
             healthChecker.start();
-
-            Thread lb = null;
+            
+            
 
             // In the main thread run a server which listens to scaling events
             ServerSocket adminServer = new ServerSocket(adminPort);
@@ -142,10 +135,9 @@ public class ProxyServer {
                             out.format("Load balancer started on port %d %n", localPort);
                             fd.assignPartitions();
                             fd.rehashPairs();
-
-                            lb = new Thread(new LoadBalancer(localPort, numHandlers, fd, md, err));
-                            lb.start();
-                            serviceStarted = true;
+                            
+                            loadBalancer.start();
+                            serviceStarted=true;
                             
                         } else if ((m = ap.ADD.matcher(cmd)).matches()) {
                             hostname = m.group(1);
@@ -155,7 +147,7 @@ public class ProxyServer {
                             if (error != 0) {
                                 out.format("Unable to add target %s:%d %n", hostname, portnum);
                             } else {
-                                out.println("Added target %s:%d");
+                                out.format("Added target %s:%d %n", hostname, portnum);
                                 fd.assignPartitions();
                                 fd.rehashPairs();
                             }
@@ -188,15 +180,14 @@ public class ProxyServer {
                             targetRecycler.interrupt();
                             monitoringApp.interrupt();
                             healthChecker.interrupt();
-                            lb.interrupt();
-                            // stopService(lb);
+                            loadBalancer.interrupt();
                             System.exit(0);
                         } else {
                             out.println("Command not recognized");
                         }
                     }                
                 } catch (IOException e) {
-                    System.err.println("Error when accepting connection from admin");
+                    System.err.println("Could not accept connection from admin: " + e.getMessage());
                 }
             }
         } catch (IOException e) {}
@@ -220,22 +211,20 @@ class LoadBalancer implements Runnable {
 
     private final ExecutorService pool;
     private final PrintWriter log;
-    private final PrintWriter err;
 
-    public LoadBalancer(int localPort, int numWorkers, ForwardingData fd, MonitoringData md, PrintWriter err) 
+    public LoadBalancer(int localPort, int numWorkers, ForwardingData fd, MonitoringData md) 
         throws IOException {
         this.serverSocket = new ServerSocket(localPort);
         this.pool = Executors.newFixedThreadPool(numWorkers);
         this.fd = fd;
         this.md = md;
         this.log = new PrintWriter(new FileWriter("log/traffic_log.txt"), true);
-        this.err = err;
     }
 
     public void run() {
         try {
             for (;;) {
-                pool.execute(new RequestHandler(serverSocket.accept(), fd, md, log, err));
+                pool.execute(new RequestHandler(serverSocket.accept(), fd, md, log));
             }
         } catch (IOException e) {
             pool.shutdown();

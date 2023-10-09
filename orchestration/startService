@@ -10,10 +10,9 @@ do
     echo "Starting URLShortener service on ${info[0]}:${info[1]}";
     ssh "${info[0]}" "cd \"$PROJECT_ROOT\"; java URLShortner ${info[1]}" > /dev/null &
 done
-
 cat ../config/hosts >> ../config/allhosts
 
 (sleep 1; echo "INIT" | nc -q 0 localhost 8081) &
 
 cd $PROJECT_ROOT
-java load_balancer/ProxyServer 2> log/error.txt
+java load_balancer/ProxyServer 2> "$PROJECT_ROOT/log/error.txt"
