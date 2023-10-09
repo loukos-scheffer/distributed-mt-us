@@ -4,11 +4,8 @@ import java.net.Socket;
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
-<<<<<<< HEAD
-=======
 import java.text.SimpleDateFormat;
 
->>>>>>> load_balancer
 
 import load_balancer.*;
 
@@ -20,13 +17,9 @@ public class MonitoringApp implements Runnable {
     private ForwardingData fd;
     private MonitoringData md;
 
-<<<<<<< HEAD
-    private int reportingInterval = 5; // reporting interval in seconds
-=======
     private final SimpleDateFormat sdf = new SimpleDateFormat("hh:mm:ss a");
     private int reportingInterval = 5; // reporting interval in seconds
 
->>>>>>> load_balancer
     
 
     public MonitoringApp(ForwardingData fd, MonitoringData md) {
@@ -49,11 +42,7 @@ public class MonitoringApp implements Runnable {
         ConcurrentHashMap<String, Integer> successfulByTarget = md.getSuccessfulRequests();
         ConcurrentHashMap<String, Integer> failedByTarget = md.getFailedRequests();
         int totalRequests = 0;
-<<<<<<< HEAD
-        long maxRTT = md.getMaxRTT();
-=======
         
->>>>>>> load_balancer
 
         long successful;
         long failed;

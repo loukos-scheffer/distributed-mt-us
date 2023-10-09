@@ -14,11 +14,7 @@ public class MonitoringData {
     private ConcurrentHashMap<String, Integer> successfulByTarget = new ConcurrentHashMap<String, Integer>();
     private ConcurrentHashMap<String, Integer> failedByTarget = new ConcurrentHashMap<String, Integer>();
     
-<<<<<<< HEAD
-
-=======
     private long cacheHits = 0;
->>>>>>> load_balancer
 
     public void recordSuccessfulRequest(String targetName) {
         incrementValue(successfulByTarget, targetName);
@@ -31,9 +27,6 @@ public class MonitoringData {
     public void clearRequestStatistics() {
         successfulByTarget.clear();
         failedByTarget.clear();
-<<<<<<< HEAD
-        maxRTT = 0;    
-=======
         cacheHits = 0;
         
     }
@@ -44,7 +37,6 @@ public class MonitoringData {
 
     public long getNumCacheHits() {
         return cacheHits;
->>>>>>> load_balancer
     }
 
 

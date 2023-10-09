@@ -78,12 +78,12 @@ public class URLShortner {
         " ...\n"
       );
       System.out.println("Reading Parition Information from manifest...");
-      boolean readSuccess = updateFromManifest();
-      if (readSuccess) {
-        System.out.println("Sucessfully read partition information");
-      } else {
-        System.out.println("FAILED TO READ MANIFEST");
-      }
+      // boolean readSuccess = updateFromManifest();
+      // if (readSuccess) {
+      //   System.out.println("Sucessfully read partition information");
+      // } else {
+      //   System.out.println("FAILED TO READ MANIFEST");
+      // }
       // we listen until user halts server execution
       while (true) {
         if (verbose) {
@@ -134,6 +134,9 @@ public class URLShortner {
         }
       }
       fileReader.close();
+
+
+
       if (
         HOSTNAME1 != null &&
         !HOSTNAME1.isEmpty() &&
@@ -166,6 +169,7 @@ public class URLShortner {
       System.out.println("FAILED TO READ MANIFEST");
       return false;
     } catch (IOException e) {
+      System.out.println(e.getMessage());
       return false;
     }
   }

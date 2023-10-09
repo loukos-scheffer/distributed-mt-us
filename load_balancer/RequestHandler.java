@@ -2,12 +2,7 @@ package load_balancer;
 
 import java.io.*;
 import java.nio.charset.*;
-<<<<<<< HEAD
-import java.net.ServerSocket;
-import java.net.Socket;
-=======
 import java.net.*;
->>>>>>> load_balancer
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.regex.*;
