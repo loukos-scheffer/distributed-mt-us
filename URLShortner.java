@@ -55,6 +55,9 @@ public class URLShortner {
   static DB DB = null;
   static String DB_URL = "jdbc:sqlite:/virtual/daidkara/example.db";
 
+  static volatile int failures = 0;
+  static final int failure_limit = 10;
+
   // verbose mode
   static final boolean verbose = true;
 
@@ -167,10 +170,16 @@ public class URLShortner {
               System.out.println(
                 "SAVING BACKUP: " + shortResource + " " + longResource
               );
-              save(shortResource, longResource);
-              out.println("HTTP/1.1 200 OK");
-              out.println();
-              out.flush();
+              boolean saved = save(shortResource, longResource);
+              if(saved) {
+                out.println("HTTP/1.1 200 OK");
+                out.println();
+                out.flush();
+              } else {
+                out.println("HTTP/1.1 500 Internal Server Error");
+                out.println();
+                out.flush();
+              }
             }
 
             Pattern pput = Pattern.compile(
@@ -204,12 +213,20 @@ public class URLShortner {
                   fileData = readFileData(file, fileLength);
                   out.println("HTTP/1.1 500 Internal Server Error");
                 }else {
-                  save(shortResource, longResource);
-                  File file = new File(WEB_ROOT, REDIRECT_RECORDED);
-                  fileLength = (int) file.length();
-                  contentMimeType = "text/html";
-                  fileData = readFileData(file, fileLength);
-                  out.println("HTTP/1.1 201 OK");
+                  boolean saved = save(shortResource, longResource);
+                  if(saved) {
+                    File file = new File(WEB_ROOT, REDIRECT_RECORDED);
+                    fileLength = (int) file.length();
+                    contentMimeType = "text/html";
+                    fileData = readFileData(file, fileLength);
+                    out.println("HTTP/1.1 201 OK");
+                  } else {
+                    File file = new File(WEB_ROOT, INTERNAL_SERVER_ERROR);
+                    fileLength = (int) file.length();
+                    contentMimeType = "text/html";
+                    fileData = readFileData(file, fileLength);
+                    out.println("HTTP/1.1 500 Internal Server Error");
+                  }
                 }
               }
               out.println("Server: Java HTTP Server/Shortner : 1.0");
@@ -289,7 +306,14 @@ public class URLShortner {
     private static String find(String shortURL) {
       String[] urlPairing = DB.getLongURL(DB_URL, shortURL);
       if (urlPairing == null) {
-        System.exit(0);
+        failures += 1;
+        if(failures >= failure_limit) {
+          System.exit(0);
+        }
+      } else {
+        if(failures > 0) {
+          failures -= 1;
+        }
       }
       if (urlPairing[1] != "") {
         return urlPairing[1];
@@ -300,7 +324,14 @@ public class URLShortner {
     private static boolean save(String shortURL, String longURL) {
       boolean saved = DB.write(DB_URL, shortURL, longURL);
       if (saved == false) {
-        System.exit(0);
+        failures += 1;
+        if(failures >= failure_limit) {
+          System.exit(0);
+        }
+      } else {
+        if(failures > 0) {
+          failures -= 1;
+        }
       }
       return saved;
     }
