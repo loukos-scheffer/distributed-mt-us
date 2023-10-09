@@ -55,7 +55,7 @@ public class URLShortner {
   static DB DB = null;
   static String DB_URL = "jdbc:sqlite:/virtual/daidkara/example.db";
 
-  static int failures = 0;
+  static volatile int failures = 0;
   static final int failure_limit = 10;
 
   // verbose mode
@@ -395,6 +395,10 @@ public class URLShortner {
         if(failures >= failure_limit) {
           System.exit(0);
         }
+      } else {
+        if(failures > 0) {
+          failures -= 1;
+        }
       }
       if (urlPairing[1] != "") {
         return urlPairing[1];
@@ -408,6 +412,10 @@ public class URLShortner {
         failures += 1;
         if(failures >= failure_limit) {
           System.exit(0);
+        }
+      } else {
+        if(failures > 0) {
+          failures -= 1;
         }
       }
       return saved;
