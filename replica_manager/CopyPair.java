@@ -24,7 +24,6 @@ public class CopyPair implements Runnable {
     }
 
     public void run(){
-
         ManifestEntry manifestEntry = this.manifestEntries.get(this.partitionNum);
         String hostnameNode1 = manifestEntry.getHostnameNode1();
         String hostnameNode2 = manifestEntry.getHostnameNode2();
@@ -66,7 +65,7 @@ public class CopyPair implements Runnable {
                 System.out.println("did not match either hostname in the manifest.");
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            e.getMessage();
         }
     }
 }

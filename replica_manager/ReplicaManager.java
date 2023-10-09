@@ -5,6 +5,8 @@ import javaSQLite.DB;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ReplicaManager {
     private final ExecutorService workers;
@@ -24,12 +26,16 @@ public class ReplicaManager {
     public boolean replicate(byte[] request){
         //request is of the format PUT shortURL longURL\n
         String requestString = new String(request, StandardCharsets.UTF_8);
-        String[] lineMap = requestString.split(" ");
-        String shortURL = lineMap[1];
-        String longURL = lineMap[2];
+        System.out.println(requestString);
+        Pattern pput = Pattern.compile(
+            "^PUT\\s+/\\?short=(\\S+)&long=(\\S+)\\s+(\\S+)$"
+        );
+        Matcher mput = pput.matcher(requestString);
+        System.out.println("AFTER " + mput.matches());
 
+        String shortURL = mput.group(1);
+        String longURL = mput.group(2);
         CopyPair copyPair = new CopyPair(shortURL, longURL, this.currentHostname);
-
         workers.execute(copyPair);
         return copyPair.success;
     }
