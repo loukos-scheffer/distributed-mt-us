@@ -1,3 +1,26 @@
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.PrintWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.URL;
+import java.util.Date;
+import java.util.StringTokenizer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import java.util.*;
+import java.util.concurrent.*;
 
 public class URLShortner {
 
@@ -32,21 +55,8 @@ public class URLShortner {
 
       // we listen until user halts server execution
       while (true) {
-        // if (verbose) {
-        //   System.out.println("Connecton opened. (" + new Date() + ")");
-        //   System.out.println(
-        //     "PARTITION 1 NAME, BACKUP_HOST: " +
-        //     PARTITION_1_NAME +
-        //     " " +
-        //     PARTITION_1_BACKUP_HOST
-        //   );
-        //   System.out.println(
-        //     "PARTITION 2 NAME, BACKUP_HOST: " +
-        //     PARTITION_2_NAME +
-        //     " " +
-        //     PARTITION_2_BACKUP_HOST
-        //   );
-        // }
+
+
         HandleRequestWorker worker = new HandleRequestWorker(
           serverConnect.accept()
         );
@@ -65,6 +75,20 @@ public class URLShortner {
       this.connectionSocket = connection;
     }
 
+    public boolean isRequestHeader(String request) {
+
+      ArrayList<String> cmds = new ArrayList<String>(Arrays.asList("PUT", "GET", "DISTRIBUTE", "COPY"));
+
+      for (String cmd: cmds) {
+        if (request.startsWith(cmd)) {
+          return true;
+        }
+      }
+      return false;
+
+    }
+
+
     public void run() {
       Socket connect = this.connectionSocket;
       BufferedReader in = null;
@@ -80,6 +104,9 @@ public class URLShortner {
         
         while ((input = in.readLine()) != null) {
 
+          if (!isRequestHeader(input)) {
+            continue;
+          }
           if (verbose) System.out.println("first line: " + input);
 
           Pattern pput = Pattern.compile(
@@ -147,8 +174,12 @@ public class URLShortner {
                 out.println();
                 out.flush();
 
+
                 dataOut.write(fileData, 0, fileLength);
                 dataOut.flush();
+
+                System.out.println("Wrote HTML response");
+
               } else {
                 File file = new File(WEB_ROOT, FILE_NOT_FOUND);
                 int fileLength = (int) file.length();
