@@ -60,12 +60,18 @@ public class MonitoringApp implements Runnable {
 
         System.out.format("Health Checks %n");
         for (String targetName: fd.getUnresponsiveTargets()) {
-            System.out.format("%s Health Check Failed%n", targetName);
+            System.out.format("[%s] Health Check Failed%n", targetName);
         }
 
         for (String targetName: fd.getTargets()) {
-            System.out.format("%s Health Check Passed%n", targetName);
+            System.out.format("[%s] Health Check Passed%n", targetName);
         }
+
+        long numCacheHits = md.getNumCacheHits();
+
+        System.out.format("Caching %n");
+        System.out.format("Cache hits=%d%n", numCacheHits);
+
 
         System.out.format("Request Statistics %n");
         System.out.format("Total requests=%d, Requests/second=%f %n%n", totalRequests, (float) totalRequests /reportingInterval);
