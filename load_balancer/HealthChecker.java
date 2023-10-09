@@ -67,7 +67,6 @@ public class HealthChecker implements Runnable {
                     }
 
                     if (isUnresponsive) {
-                        System.out.format("Health Check for target %s failed. %n", targetName);
                         fd.recordUnresponsiveTarget(targetName);
                     }
 
