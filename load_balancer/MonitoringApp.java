@@ -4,6 +4,8 @@ import java.net.Socket;
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
+import java.text.SimpleDateFormat;
+
 
 import load_balancer.*;
 
@@ -15,7 +17,9 @@ public class MonitoringApp implements Runnable {
     private ForwardingData fd;
     private MonitoringData md;
 
+    private final SimpleDateFormat sdf = new SimpleDateFormat("hh:mm:ss a");
     private int reportingInterval = 5; // reporting interval in seconds
+
     
 
     public MonitoringApp(ForwardingData fd, MonitoringData md) {
@@ -38,23 +42,33 @@ public class MonitoringApp implements Runnable {
         ConcurrentHashMap<String, Integer> successfulByTarget = md.getSuccessfulRequests();
         ConcurrentHashMap<String, Integer> failedByTarget = md.getFailedRequests();
         int totalRequests = 0;
-        long maxRTT = md.getMaxRTT();
+        
 
         long successful;
         long failed;
 
+        System.out.format("=== System State at %s ===%n", sdf.format(new Date()));
+        System.out.format("Number of Requests by Target%n");
 
-        System.out.format("== Monitoring App ==%n");
-        for (String targetName: successfulByTarget.keySet()) {
+
+        for (String targetName: fd.getTargets()) {
             successful = (successfulByTarget.get(targetName) == null) ? 0 : successfulByTarget.get(targetName);
             failed = (failedByTarget.get(targetName) == null) ? 0 : failedByTarget.get(targetName);
-            System.out.format("Node=%s, successful=%d, failed=%d %n", targetName, successful, failed);
+            System.out.format("[%s] successful=%d failed=%d %n", targetName, successful, failed);
             totalRequests += successful;
         }
-        printTargetList(fd.getUnresponsiveTargets(), "Unresponsive");
-        printTargetList(fd.getTargets(), "Active");
-        printTargetList(fd.getStandbyTargets(), "Standby");
-        System.out.format("Total requests=%d, Requests/second=%f, Max RTT=%d %n", totalRequests, (float) totalRequests /reportingInterval ,maxRTT);
+
+        System.out.format("Health Checks %n");
+        for (String targetName: fd.getUnresponsiveTargets()) {
+            System.out.format("%s Health Check Failed%n", targetName);
+        }
+
+        for (String targetName: fd.getTargets()) {
+            System.out.format("%s Health Check Passed%n", targetName);
+        }
+
+        System.out.format("Request Statistics %n");
+        System.out.format("Total requests=%d, Requests/second=%f %n%n", totalRequests, (float) totalRequests /reportingInterval);
         md.clearRequestStatistics();
     }
     private void printTargetList(Collection<String> targetList, String name) {

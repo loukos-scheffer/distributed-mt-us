@@ -21,7 +21,7 @@ public class ForwardingData{
     private ConcurrentHashMap<Integer, ArrayList<String>> targetsByPart = new ConcurrentHashMap<Integer,ArrayList<String>>();
     private ConnectionPool connectionPool;
     private URLHash requestHash = null;
-    // TODO: Add cache
+    private CacheWithExpiry cache = new CacheWithExpiry();
 
 
     /* List of currently active targets, and queue of standby targets */
@@ -118,12 +118,11 @@ public class ForwardingData{
                 writer.write(msg, 0, msg.length());
                 writer.flush();
                 
-                // Uncomment when implemented on the node receiving the message
-                // bytesResponse = reader.read(reply, 0, 4096);
-                // // return with error if we did not receive confirmation from the node
-                // if (bytesResponse == -1) {
-                //     return -1;
-                // }
+                bytesResponse = reader.read(reply, 0, 4096);
+                // return with error if we did not receive confirmation from the node
+                if (bytesResponse == -1) {
+                    return -1;
+                }
                 
             } catch (IOException e) {
                 return -1;
@@ -228,6 +227,18 @@ public class ForwardingData{
         throws IOException {
         return  connectionPool.connect(targetName);
     }
+
+    public String getFromCache(String request) {
+        if (cache.get(request) == null) {
+            return null;
+        }
+        return cache.get(request);
+    }
+
+    public void cacheRequest(String request, String response) {
+        cache.put(request, response);
+    }
+
 
     public void closeConnection(String targetName, Socket s) 
         throws IOException {

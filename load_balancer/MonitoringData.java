@@ -27,7 +27,7 @@ public class MonitoringData {
     public void clearRequestStatistics() {
         successfulByTarget.clear();
         failedByTarget.clear();
-        maxRTT = 0;    
+        
     }
 
 

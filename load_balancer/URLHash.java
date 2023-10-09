@@ -9,7 +9,7 @@ import java.util.HashMap;
  *  to a partition ID.
  * 
  *  The hash function of choice is DJB2: https://theartincode.stanis.me/008-djb2/
- *  @Author: Keshav Worathur
+ *  @author: Keshav Worathur
  */
 
 public class URLHash{

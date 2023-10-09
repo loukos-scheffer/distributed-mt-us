@@ -51,7 +51,7 @@ public class ProxyServer {
                 error = fd.addTarget(hostname, portnum, false);
 
                 if (error != 0) {
-                    System.err.format("[%s] Target %d unreachable %n", threadName, hostname);
+                    System.err.format("[%s] Target %s unreachable %n", threadName, hostname);
                 }
                 line = r.readLine();
             }  
@@ -96,7 +96,7 @@ public class ProxyServer {
             // Start a thread that listens for unresponsive target events
             Thread targetRecycler = new Thread(new TargetRecycler(fd));
             targetRecycler.start();
-
+            
             Thread monitoringApp = new Thread(new MonitoringApp(fd, md));
             monitoringApp.start();
 

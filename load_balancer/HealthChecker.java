@@ -11,7 +11,7 @@ import load_balancer.*;
 
 public class HealthChecker implements Runnable {
 
-    private int healthCheckInterval = 5;
+    private int healthCheckInterval = 5; // in seconds
 
     private ForwardingData fd;
 

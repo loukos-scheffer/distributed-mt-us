@@ -18,8 +18,8 @@ public class RequestHandler implements Runnable {
     private ForwardingData fd;
     private MonitoringData md;
 
-    private static Pattern pput = Pattern.compile("^PUT\\s+/\\?short=(\\S+)&long=(\\S+)\\s+(\\S+)$");
-    private static Pattern pget = Pattern.compile("^(\\S+)\\s+/(\\S+)\\s+(\\S+)$");
+    private final Pattern pput = Pattern.compile("^PUT\\s+/\\?short=(\\S+)&long=(\\S+)\\s+(\\S+)$");
+    private final Pattern pget = Pattern.compile("^(\\S+)\\s+/(\\S+)\\s+(\\S+)$");
 
 
     public RequestHandler(Socket client, ForwardingData fd, MonitoringData md, PrintWriter log) {
@@ -53,11 +53,11 @@ public class RequestHandler implements Runnable {
     public void handleRequest(byte[] request, int bytesRead) {
 
             char[] response = new char[4096];
-            String requestStr = null;
+            String requestHead = null;
 
             try (InputStream in = new ByteArrayInputStream(request);
                  BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
-                requestStr = reader.readLine();
+                requestHead = reader.readLine();
             } catch (IOException e) {}
             
             String hostname = null;
@@ -67,17 +67,20 @@ public class RequestHandler implements Runnable {
             String targetInfo[];
 
             int bytesResponse = 0;
-            int fileLength = 0;
 
             Socket server = null;
 
-            Matcher mput = pput.matcher(requestStr);
+            PrintWriter streamToClient;
+            BufferedOutputStream streamToServer; 
+            BufferedReader streamFromServer;
+
+            Matcher mput = pput.matcher(requestHead);
             String shortResource = null;
 
             if (mput.matches()) {
                 shortResource = mput.group(1);
             } else {
-                Matcher mget = pget.matcher(requestStr);
+                Matcher mget = pget.matcher(requestHead);
                 if (mget.matches()) {
                     shortResource = mget.group(2);
                 }
@@ -88,6 +91,21 @@ public class RequestHandler implements Runnable {
                 return;
             }
             
+            String cachedResponse = fd.getFromCache(shortResource);
+
+            if (cachedResponse != null) {
+                try {
+                    streamToClient = new PrintWriter(client.getOutputStream());
+                    streamToClient.print(response);
+                    streamToClient.flush();
+                } catch (IOException e) {
+                    System.out.println("Could not return response to client");
+                }
+                return;
+            }
+
+
+
             targetName = fd.getTarget(shortResource, mput.matches());
             targetInfo = targetName.split(":", 2);
 
@@ -98,6 +116,8 @@ public class RequestHandler implements Runnable {
                 System.err.println("Could not obtain hostname or portnum for target");
                 return;
             }
+	    
+	    
 
             try {
                 server = fd.connect(targetName);
@@ -106,32 +126,35 @@ public class RequestHandler implements Runnable {
                 System.err.format("Unable to establish connection with %s %n", hostname);
             }
             // Forward the request to the server, and wait for the response
-            BufferedOutputStream streamToServer; 
-            BufferedReader reader;
+            
 
             try {
                 streamToServer = new BufferedOutputStream(server.getOutputStream());
-                reader = new BufferedReader(new InputStreamReader(server.getInputStream()));
+                streamFromServer = new BufferedReader(new InputStreamReader(server.getInputStream()));
                 streamToServer.write(request, 0, bytesRead);
                 streamToServer.flush();
-                bytesResponse = reader.read(response, 0, 4096);
+                bytesResponse = streamFromServer.read(response, 0, 4096);
 
-                if (bytesResponse < 200) { 
-                    bytesResponse += reader.read(response, bytesResponse, 4096 - bytesResponse);
+                while(streamFromServer.ready()) {
+                    bytesResponse += streamFromServer.read(response, bytesResponse, 4096 - bytesResponse);
                 }
+
             } catch (IOException e) {
                 System.err.println(e);
             }
             
-            PrintWriter out;
+            
 
             try {
-                out = new PrintWriter(client.getOutputStream());
-                out.print(response);
-                out.flush();
+                streamToClient = new PrintWriter(client.getOutputStream());
+                streamToClient.print(response);
+                streamToClient.flush();
             } catch (IOException e) {
                 System.out.println("Could not return response to client");
+                md.recordFailedRequest(targetName);
             }
+
+            fd.cacheRequest(shortResource, String.valueOf(response));
                 
                 
             try {
@@ -140,7 +163,6 @@ public class RequestHandler implements Runnable {
             } catch (IOException e) {
                 System.err.println(e);
             }
-
             
             log.format("node=%s, short=%s %n", hostname, shortResource);
             md.recordSuccessfulRequest(targetName);
