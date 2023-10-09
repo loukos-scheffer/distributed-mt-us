@@ -2,8 +2,7 @@ package load_balancer;
 
 import java.io.*;
 import java.nio.charset.*;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.net.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.regex.*;
@@ -60,6 +59,7 @@ public class RequestHandler implements Runnable {
                 requestHead = reader.readLine();
             } catch (IOException e) {}
             
+            
             String hostname = null;
             int portnum = -1;
 
@@ -77,35 +77,42 @@ public class RequestHandler implements Runnable {
             Matcher mput = pput.matcher(requestHead);
             String shortResource = null;
 
+            boolean isCacheable = false;
+
             if (mput.matches()) {
                 shortResource = mput.group(1);
             } else {
                 Matcher mget = pget.matcher(requestHead);
                 if (mget.matches()) {
                     shortResource = mget.group(2);
+                    isCacheable = true;
                 }
             }
 
             if (shortResource == null) {
-                System.err.println("Could not extract short from client request");
+                System.err.format("Could not extract short from request: %s", requestHead);
                 return;
             }
             
-            String cachedResponse = fd.getFromCache(shortResource);
+            if (isCacheable) { // cache GET requests only
 
-            if (cachedResponse != null) {
-                try {
-                    streamToClient = new PrintWriter(client.getOutputStream());
-                    streamToClient.print(response);
-                    streamToClient.flush();
-                } catch (IOException e) {
-                    System.out.println("Could not return response to client");
+                String cachedResponse = fd.getFromCache(shortResource);
+
+                if (cachedResponse != null) {
+                    try {
+                        streamToClient = new PrintWriter(client.getOutputStream());
+                        streamToClient.print(cachedResponse);
+                        streamToClient.flush();
+                        md.recordCacheHit();
+                        log.format("Serviced %s from cache %n", requestHead);
+                    } catch (IOException e) {
+                        System.err.format("Could not return response to client from cache");
+                    }
+                    return;
                 }
-                return;
+
             }
-
-
-
+            
             targetName = fd.getTarget(shortResource, mput.matches());
             targetInfo = targetName.split(":", 2);
 
@@ -121,9 +128,11 @@ public class RequestHandler implements Runnable {
 
             try {
                 server = fd.connect(targetName);
-                // server = new Socket(hostname, portnum);
+                // server = new Socket(hostname, portnum); If pooling was not used
             } catch (IOException e){
                 System.err.format("Unable to establish connection with %s %n", hostname);
+                md.recordFailedRequest(targetName);
+                return;
             }
             // Forward the request to the server, and wait for the response
             
@@ -133,12 +142,14 @@ public class RequestHandler implements Runnable {
                 streamFromServer = new BufferedReader(new InputStreamReader(server.getInputStream()));
                 streamToServer.write(request, 0, bytesRead);
                 streamToServer.flush();
+
                 bytesResponse = streamFromServer.read(response, 0, 4096);
-
-                while(streamFromServer.ready()) {
-                    bytesResponse += streamFromServer.read(response, bytesResponse, 4096 - bytesResponse);
-                }
-
+                bytesResponse += streamFromServer.read(response, bytesResponse, 4096 - bytesResponse);
+                
+            } catch (SocketTimeoutException e) {
+                System.err.format("Incomplete response for %s from %s%n", requestHead, hostname);
+                md.recordFailedRequest(targetName);
+                return;
             } catch (IOException e) {
                 System.err.println(e);
             }
@@ -152,19 +163,21 @@ public class RequestHandler implements Runnable {
             } catch (IOException e) {
                 System.out.println("Could not return response to client");
                 md.recordFailedRequest(targetName);
+                return;
             }
 
-            fd.cacheRequest(shortResource, String.valueOf(response));
-                
-                
+            if (isCacheable) {
+                fd.cacheRequest(shortResource, String.valueOf(response));
+            }
+            
             try {
                 fd.closeConnection(targetName, server);
-                // server.close();
+                // server.close(); if pooling was not used
             } catch (IOException e) {
                 System.err.println(e);
             }
             
-            log.format("node=%s, short=%s %n", hostname, shortResource);
+            log.format("Forwarded %s to %s %n", requestHead, hostname);
             md.recordSuccessfulRequest(targetName);
     
     }
