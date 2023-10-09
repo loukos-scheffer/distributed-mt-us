@@ -1,16 +1,13 @@
 package javaSQLite;
 
-import utils.Row;
-
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.PreparedStatement;
 import java.util.ArrayList;
-
+import utils.Row;
 
 public class DB {
 
@@ -91,82 +88,7 @@ public class DB {
       }
     }
   }
-
-  public static void read(String url) {
-    Connection conn = null;
-    try {
-      conn = connect(url);
-      Statement stmt = conn.createStatement();
-      String sql = "SELECT shortURL, longURL FROM urls";
-      ResultSet rs = stmt.executeQuery(sql);
-      int count = 0;
-      while (rs.next()) {
-        count++;
-      }
-      System.out.println(count);
-    } catch (SQLException e) {
-      System.out.println(e.getMessage());
-    } finally {
-      try {
-        if (conn != null) {
-          conn.close();
-        }
-      } catch (SQLException ex) {
-        System.out.println(ex.getMessage());
-      }
-    }
-  }
-
-  public static String[] getLongURL(String DBurl, String queryURL) {
-    Connection conn = null;
-    try {
-      conn = connect(DBurl);
-      Statement stmt = conn.createStatement();
-      String sql = "SELECT shortURL, longURL FROM urls where shortURL = (?);";
-      PreparedStatement ps = conn.prepareStatement(sql);
-      ps.setString(1, queryURL);
-      ResultSet rs = ps.executeQuery();
-      int count = 0;
-      String[] pairing = new String[2];
-	  pairing[0] = "";
-	  pairing[1] = "";
-      while (rs.next()) {
-        String shortURL = rs.getString("shortURL");
-        String longURL = rs.getString("longURL");
-        pairing[0] = shortURL;
-        pairing[1] = longURL;
-        count++;
-      }
-			// if its not then add it
-			if (!inDB){ 
-				String insertSQL = "INSERT INTO urls (shortURL, longURL) VALUES (?, ?)";
-				ps = conn.prepareStatement(insertSQL);
-				ps.setString(1, shortURL);
-				ps.setString(2, longURL);
-				ps.execute();
-			}
-			// if it is then update the 
-			else {
-				String updateSQL = "UPDATE urls SET shortURL = (?), longURL = (?) WHERE shortURL = (?);";
-				ps = conn.prepareStatement(updateSQL);
-				ps.setString(1, shortURL);
-				ps.setString(2, longURL);
-				ps.setString(3, shortURL);
-				ps.execute();
-			}
-		} catch (SQLException e) {
-			System.out.println(e.getMessage());
-        	} finally {
-            		try {
-                		if (conn != null) {
-                    			conn.close();
-                		}
-            		} catch (SQLException ex) {
-                		System.out.println(ex.getMessage());
-            		}
-		}
-	}
-	public static ArrayList<Row> read(String url) {
+  	public static ArrayList<Row> read(String url) {
 		Connection conn=null;
 		try {
 			conn = connect(url);
@@ -195,6 +117,44 @@ public class DB {
 			return null;
 		}
 	}
+
+  public static String[] getLongURL(String DBurl, String queryURL) {
+    Connection conn = null;
+    try {
+      conn = connect(DBurl);
+      Statement stmt = conn.createStatement();
+      String sql = "SELECT shortURL, longURL FROM urls where shortURL = (?);";
+      PreparedStatement ps = conn.prepareStatement(sql);
+      ps.setString(1, queryURL);
+      ResultSet rs = ps.executeQuery();
+      int count = 0;
+      String[] pairing = new String[2];
+	  pairing[0] = "";
+	  pairing[1] = "";
+      while (rs.next()) {
+        String shortURL = rs.getString("shortURL");
+        String longURL = rs.getString("longURL");
+        pairing[0] = shortURL;
+        pairing[1] = longURL;
+        count++;
+      }
+
+      if (count > 1) {
+        System.out.println("multiple matching shortURLs in DB");
+      }
+      try {
+        if (conn != null) {
+          conn.close();
+        }
+      } catch (SQLException ex) {
+        System.out.println(ex.getMessage());
+      }
+      return pairing;
+    } catch (SQLException e) {
+      System.out.println(e.getMessage());
+      return null;
+    }
+  }
 
   public static void delete(String DBurl, String queryURL) {
     Connection conn = null;
