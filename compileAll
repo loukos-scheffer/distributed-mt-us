@@ -1,0 +1,7 @@
+#!/bin/bash 
+
+javac load_balancer/*.java
+javac replica_manager/*.java
+javac utils/*.java
+javac javaSQLite/*.java
+javac URLShortner.java
