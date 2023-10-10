@@ -8,7 +8,7 @@ for host in `cat ../config/hosts`
 do 
     readarray -d : -t info <<< $host
     echo "Starting URLShortener service on ${info[0]}:${info[1]}";
-    ssh "${info[0]}" "cd \"$PROJECT_ROOT\"; orchestration/startServiceLocal ${info[1]}" > /dev/null &
+    ssh "${info[0]}" "cd \"$PROJECT_ROOT\"; cd orchestration; ./startServiceLocal ${info[1]}" > /dev/null &
 done
 cat ../config/hosts >> ../config/allhosts
 

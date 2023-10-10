@@ -18,7 +18,7 @@ public class MonitoringApp implements Runnable {
     private MonitoringData md;
 
     private final SimpleDateFormat sdf = new SimpleDateFormat("hh:mm:ss a");
-    private int reportingInterval = 6000; // reporting interval in seconds
+    private int reportingInterval = 5; // reporting interval in seconds
 
     
 

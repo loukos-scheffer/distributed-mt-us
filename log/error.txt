@@ -1,4 +1,0 @@
-[main] Target dh2026pc05 unreachable 
-[main] Target dh2026pc06 unreachable 
-[main] Target dh2026pc07 unreachable 
-[main] Unable to initialize at least one target 

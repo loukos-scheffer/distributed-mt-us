@@ -33,12 +33,15 @@ public class ReplicaManager {
         );
         Matcher mput = pput.matcher(requestString);
 
+        if (mput.matches()) {
+            String shortURL = mput.group(1);
+            String longURL = mput.group(2);
 
-        String shortURL = mput.group(1);
-        String longURL = mput.group(2);
+            CopyPair copyPair = new CopyPair(shortURL, longURL, this.currentHostname);
+            workers.execute(copyPair);
+        }
 
-        CopyPair copyPair = new CopyPair(shortURL, longURL, this.currentHostname);
-        workers.execute(copyPair);
+        
         return true;
     }
 

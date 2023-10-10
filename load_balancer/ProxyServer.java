@@ -22,7 +22,7 @@ public class ProxyServer {
     private final int poolSize=32;
     private final int numHandlers=32;
     private final int replicationFactor=2;
-    private final boolean useCaching = true;
+    private final boolean useCaching = false;
 
 
 
@@ -232,6 +232,7 @@ class LoadBalancer implements Runnable {
     public void run() {
         try {
             for (;;) {
+            
                 pool.execute(new RequestHandler(serverSocket.accept(), fd, md, log));
             }
         } catch (IOException e) {

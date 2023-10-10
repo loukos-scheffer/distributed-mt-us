@@ -131,6 +131,9 @@ public class URLShortner {
       PrintWriter out = null;
       BufferedOutputStream dataOut = null;
 
+
+
+
       try {
         in =
           new BufferedReader(new InputStreamReader(connect.getInputStream()));
@@ -138,6 +141,8 @@ public class URLShortner {
         dataOut = new BufferedOutputStream(connect.getOutputStream());
         String line;
         String input;
+
+      
         while ((line = in.readLine()) != null) {
           if (isRequestHeader(line)) {
             input = line;
