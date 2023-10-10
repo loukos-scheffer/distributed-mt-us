@@ -88,34 +88,26 @@ public class DB {
       }
     }
   }
-  	public static ArrayList<Row> read(String url) {
-		Connection conn=null;
-		try {
-			conn = connect(url);
+  public static ArrayList<Row> read(String url) {
+		ArrayList<Row> dump = new ArrayList<Row>();
+		try (Connection conn = connect(url)) {
 			Statement stmt  = conn.createStatement();
-			String sql = "SELECT shortURL, longURL FROM urls";
+			String sql = "SELECT shortURL, longURL FROM urls;";
 			ResultSet rs = stmt.executeQuery(sql);
 			int count = 0;
-			ArrayList<Row> dump = new ArrayList<Row>();
 			while (rs.next()) {
 				Row rowEntry = new Row(rs.getString("shortURL"), rs.getString("longURL"));
 				dump.add(rowEntry);
 				count ++;
 			}
 			System.out.println(count);
-			return dump;
+      System.out.println(dump.size());
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
-        	} finally {
-            		try {
-                		if (conn != null) {
-                    			conn.close();
-                		}
-            		} catch (SQLException ex) {
-                		System.out.println(ex.getMessage());
-            		}
-			return null;
-		}
+      return null;
+    }
+    return dump;
+
 	}
 
   public static String[] getLongURL(String DBurl, String queryURL) {

@@ -99,81 +99,7 @@ public class URLShortner {
     }
   }
 
-  private static boolean updateFromManifest() {
-    try {
-      File file = new File(MANIFEST);
-      FileReader fileReader = new FileReader(file);
-      BufferedReader bufferedReader = new BufferedReader(fileReader);
-      String line;
-      String HOSTNAME1 = null;
-      String HOSTNAME1PARTITION = null;
-      String HOSTNAME2 = null;
-      String HOSTNAME2PARTITION = null;
-      while ((line = bufferedReader.readLine()) != null) {
-        String[] map = line.split(",");
-        String partitionNumber = map[0];
-        String hostOne = map[1];
-        String hostTwo = map[2];
-        if (hostOne.equals(HOSTNAMEPORT)) {
-          if (HOSTNAME1 != null && !HOSTNAME1.isEmpty()) {
-            HOSTNAME2 = hostTwo;
-            HOSTNAME2PARTITION = partitionNumber;
-          } else {
-            HOSTNAME1 = hostTwo;
-            HOSTNAME1PARTITION = partitionNumber;
-          }
-        }
-        if (hostTwo.equals(HOSTNAMEPORT)) {
-          if (HOSTNAME1 != null && !HOSTNAME1.isEmpty()) {
-            HOSTNAME2 = hostOne;
-            HOSTNAME2PARTITION = partitionNumber;
-          } else {
-            HOSTNAME1 = hostOne;
-            HOSTNAME1PARTITION = partitionNumber;
-          }
-        }
-      }
-      fileReader.close();
-
-
-
-      if (
-        HOSTNAME1 != null &&
-        !HOSTNAME1.isEmpty() &&
-        HOSTNAME2 != null &&
-        !HOSTNAME2.isEmpty() &&
-        HOSTNAME1PARTITION != null &&
-        !HOSTNAME1PARTITION.isEmpty() &&
-        HOSTNAME2PARTITION != null &&
-        !HOSTNAME2PARTITION.isEmpty()
-      ) {
-        PARTITION_1_NAME = HOSTNAME1PARTITION;
-        PARTITION_1_BACKUP_HOST = "http://" + HOSTNAME1 + "/";
-        PARTITION_2_NAME = HOSTNAME2PARTITION;
-        PARTITION_2_BACKUP_HOST = "http://" + HOSTNAME2 + "/";
-        System.out.println("Sucessfully read partition information");
-        System.out.println(
-          "PARTITION1 NAME,HOST : " +
-          PARTITION_1_NAME +
-          "," +
-          PARTITION_1_BACKUP_HOST
-        );
-        System.out.println(
-          "PARTITION1 NAME,HOST : " +
-          PARTITION_2_NAME +
-          "," +
-          PARTITION_2_BACKUP_HOST
-        );
-        return true;
-      }
-      System.out.println("FAILED TO READ MANIFEST");
-      return false;
-    } catch (IOException e) {
-      System.out.println(e.getMessage());
-      return false;
-    }
-  }
-
+  
   private static class HandleRequestWorker implements Runnable {
 
     private Socket connectionSocket;
@@ -210,30 +136,21 @@ public class URLShortner {
         String line;
         String input;
         while ((line = in.readLine()) != null) {
-          if (
-            line.startsWith("GET") ||
-            line.startsWith("PUT") ||
-            line.startsWith("DISTRIBUTE")
-          ) {
+          if (isRequestHeader(line)) {
             input = line;
             if (verbose) System.out.println("first line: " + input);
 
             Pattern distributeput = Pattern.compile(
-              "^DISTRIBUTE\\s+/(\\S+)\\s+(\\S+)$"
+              "^DISTRIBUTE\\s+(\\S+)$"
             );
             Matcher distributemput = distributeput.matcher(input);
             if (distributemput.matches()) {
               String numHosts = distributemput.group(1);
-              String httpVersion = distributemput.group(2);
               System.out.println("DISTRIBUTE TO " + numHosts);
-              boolean success = updateFromManifest();
+              
               //call replicaManager to distribute the urls,
               replicaManager.distribute();
-              if (success) {
-                out.println("HTTP/1.1 200 OK");
-              } else {
-                out.println("HTTP/1.1 409 Conflict");
-              }
+              out.println("HTTP/1.1 200 OK");
               out.println("Server: Java HTTP Server/Shortner : 1.0");
               out.println("Date: " + new Date());
               out.println();
@@ -348,15 +265,13 @@ public class URLShortner {
                 }
               }
             };
-          } else {
-            System.out.println("NON MATCHING LINE: " + line);
-          }
+          } 
       }
       } catch (Exception e) {
         System.err.println(e);
       } finally {
         try {
-          System.out.println("CLOSING CONNECTION");
+         
           in.close();
           out.close();
           connect.close(); // we close socket connection

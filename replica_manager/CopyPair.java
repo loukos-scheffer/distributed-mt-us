@@ -17,12 +17,11 @@ public class CopyPair implements Runnable {
     HashMap<Integer, ManifestEntry> manifestEntries;
     private URLHash hash;
 
-    public CopyPair(String shortURL, String longURL, String currentHostname){
+    public CopyPair(String shortURL, String longURL, String currentHostname, HashMap<Integer, ManifestEntry> manifestEntries){
         this.shortURL = shortURL;
         this.longURL = longURL;
         this.currentHostname = currentHostname;
-        this.manifestEntries = new ManifestReader().mapManifestEntries();
-
+        this.manifestEntries = manifestEntries;
         int totalPartitions = manifestEntries.keySet().size();
         this.hash = new URLHash(totalPartitions);
     }
@@ -36,6 +35,7 @@ public class CopyPair implements Runnable {
         int portNode1 = manifestEntry.getPortNode1();
         int portNode2 = manifestEntry.getPortNode2();
         String requestString = String.format("COPY %s %s\n", this.shortURL, this.longURL);
+        System.out.println("COPYPAIR " + requestString);
         try {
             if (this.currentHostname.equals(hostnameNode1)) {
                 Socket socketNode2 = new Socket(hostnameNode2, portNode2);
@@ -44,10 +44,11 @@ public class CopyPair implements Runnable {
                 BufferedReader node2Reader = new BufferedReader(new InputStreamReader(socketNode2.getInputStream()));
 
                 node2Writer.write(requestString, 0, requestString.length());
+                node2Writer.flush();
                 String line = node2Reader.readLine();
                 System.out.println("IN COPYPAIR" + line);
 
-                if (!line.equals("200")){
+                if (!line.startsWith("200")){
                     System.out.println("COPY request to node 2 failed.");
                     Thread.sleep(100);
                     // retry
@@ -72,8 +73,7 @@ public class CopyPair implements Runnable {
 
                 node1Writer.write(requestString, 0, requestString.length());
                 String line = node1Reader.readLine();
-                System.out.println("IN COPYPAIR" + line);
-                if (!line.equals("200")){
+                if (!line.startsWith("200")){
                     System.out.println("COPY request to node 1 failed.");
                     Thread.sleep(100);
                     // retry on failure
