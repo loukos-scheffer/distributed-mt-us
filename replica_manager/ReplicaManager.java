@@ -1,8 +1,11 @@
 package replica_manager;
 
 import javaSQLite.DB;
+import utils.ManifestEntry;
+import utils.ManifestReader;
 
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
@@ -12,6 +15,7 @@ public class ReplicaManager {
     private final ExecutorService workers;
     private final String currentHostname;
     private final String dbURL;
+    private static HashMap<Integer, ManifestEntry> manifestEntries;
     DB db = null;
 
 
@@ -19,6 +23,7 @@ public class ReplicaManager {
 
     public ReplicaManager (String dbURL, String currentHostname) {
         this.workers = Executors.newFixedThreadPool(4);
+        this.manifestEntries = new ManifestReader().mapManifestEntries();
         this.currentHostname = currentHostname;
         this.db = new DB();
         this.dbURL = dbURL;
@@ -41,12 +46,12 @@ public class ReplicaManager {
             workers.execute(copyPair);
         }
 
-        
         return true;
     }
 
     public boolean distribute(){
-        DistributePairs distributePairs = new DistributePairs(this.db, this.dbURL);
+        this.manifestEntries = new ManifestReader().mapManifestEntries();
+        DistributePairs distributePairs = new DistributePairs(this.db, this.dbURL, this.manifestEntries);
 
         workers.execute(distributePairs);
         return distributePairs.success;

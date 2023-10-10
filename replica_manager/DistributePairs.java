@@ -17,10 +17,10 @@ public class DistributePairs implements Runnable {
     public boolean success = true;
 
 
-    public DistributePairs(DB db, String dbURL){
+    public DistributePairs(DB db, String dbURL, HashMap<Integer, ManifestEntry> manifestEntries){
         this.db = db;
         this.dbURL = dbURL;
-        this.manifestEntries = new ManifestReader().mapManifestEntries();
+        this.manifestEntries = manifestEntries;
         this.urlHash = new URLHash(this.manifestEntries.size());
     }
     

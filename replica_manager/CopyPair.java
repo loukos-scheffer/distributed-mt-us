@@ -17,12 +17,11 @@ public class CopyPair implements Runnable {
     HashMap<Integer, ManifestEntry> manifestEntries;
     private URLHash hash;
 
-    public CopyPair(String shortURL, String longURL, String currentHostname){
+    public CopyPair(String shortURL, String longURL, String currentHostname, HashMap<Integer, ManifestEntry> manifestEntries){
         this.shortURL = shortURL;
         this.longURL = longURL;
         this.currentHostname = currentHostname;
-        this.manifestEntries = new ManifestReader().mapManifestEntries();
-
+        this.manifestEntries = manifestEntries;
         int totalPartitions = manifestEntries.keySet().size();
         this.hash = new URLHash(totalPartitions);
     }
