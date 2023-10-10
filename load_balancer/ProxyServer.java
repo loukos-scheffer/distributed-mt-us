@@ -19,10 +19,10 @@ public class ProxyServer {
     private final MonitoringData md;
 
     // To control throughput
-    private final int poolSize=32;
+    private final int poolSize=64;
     private final int numHandlers=32;
     private final int replicationFactor=2;
-    private final boolean useCaching = false;
+    private final boolean useCaching = true;
 
 
 
@@ -232,8 +232,8 @@ class LoadBalancer implements Runnable {
     public void run() {
         try {
             for (;;) {
-            
                 pool.execute(new RequestHandler(serverSocket.accept(), fd, md, log));
+
             }
         } catch (IOException e) {
             pool.shutdown();

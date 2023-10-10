@@ -120,8 +120,6 @@ public class RequestHandler implements Runnable {
             try {
                 server = fd.connect(targetName);
                 // server = new Socket(hostname, portnum); 
-                
-       
             } catch (IOException e){
                 System.err.format("Unable to establish connection with %s %n", hostname);
                 md.recordFailedRequest(targetName);
@@ -159,12 +157,7 @@ class WriteToServer implements Runnable {
 
         try {
             BufferedOutputStream streamToServer = new BufferedOutputStream(server.getOutputStream());
-            
-
-            System.out.println(new String(request, "UTF-8"));
-            
             streamToServer.write(request, 0, bytesRead);
-            
             streamToServer.flush();
         } catch (IOException e) {}
 

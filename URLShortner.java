@@ -209,6 +209,7 @@ public class URLShortner {
                   out.flush();
               } else {
                 if (!replicaManager.replicate(input.getBytes())){
+                
                   out.println("HTTP/1.1 500 Internal Server Error");
                   out.println("Server: Java HTTP Server/Shortner : 1.0");
                   out.println("Date: " + new Date());
