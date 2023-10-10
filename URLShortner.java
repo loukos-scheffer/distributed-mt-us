@@ -31,11 +31,11 @@ import java.util.concurrent.*;
 public class URLShortner {
 
   static final File WEB_ROOT = new File(".");
-  static final String FILE_NOT_FOUND_HTML = "<html><body><h1>Not Found</h1></body></html>";
-  static final String INTERNAL_SERVER_ERROR_HTML = "<html><body><h1>Internal Server Error</h1></body></html>";
-  static final String REDIRECT_RECORDED_HTML = "<html><body><h1>Got it!</h1></body></html>";
-  static final String REDIRECT_HTML = "<html><head><title>Moved</title></head><body><h1>Moved</h1><p>This page has moved</p></body></html>";
-  static final String BAD_REQUEST_HTML = "<html><body><h1>400 - BAD REQUEST</h1></body></html>";
+  static final String FILE_NOT_FOUND_HTML = "<html>\n\t<body>\n\t\t<h1>Not Found</h1>\n\t</body>\n</html>\r\n";
+  static final String INTERNAL_SERVER_ERROR_HTML = "<html>\n\t<body>\n\t\t<h1>INTERNAL SERVER ERROR</h1>\n\t</body>\n</html>\r\n";
+  static final String REDIRECT_RECORDED_HTML = "<html>\n\t<body>\n\t\t<h1>Got it!</h1>\n\t</body>\n</html>\r\n";
+  static final String REDIRECT_HTML = "<html>\n\t<head>\n\t\t<title>Moved</title>\n\t</head>\n\t<body>\n\t\t<h1>Moved</h1>\n\t\t<p>This page has moved</p>\n\t</body>\n</html>\r\n";
+  static final String BAD_REQUEST_HTML = "<html>\n\t<body>\n\t\t<h1>400 - BAD REQUEST</h1>\n\t</body>\n</html>\r\n";
   static final String DATABASE = "database.txt";
   static final String MANIFEST = "./config/manifest";
   static String HOSTNAME = null;
@@ -198,7 +198,7 @@ public class URLShortner {
                   out.println("Server: Java HTTP Server/Shortner : 1.0");
                   out.println("Date: " + new Date());
                   out.println("Content-type: text/html");
-                  out.println("Content-length: 52");
+                  out.println("Content-length: 63");
                   out.println();
                   out.println(BAD_REQUEST_HTML);
                   out.flush();
@@ -208,10 +208,10 @@ public class URLShortner {
                   out.println("Server: Java HTTP Server/Shortner : 1.0");
                   out.println("Date: " + new Date());
                   out.println("Content-type: text/html");
-                  out.println("Content-length: 56");
+                  out.println("Content-length: 67");
                   out.println();
-                  out.flush();
                   out.println(INTERNAL_SERVER_ERROR_HTML);
+                  out.flush();
                 }else {
                   boolean saved = save(shortResource, longResource);
                   if(saved) {
@@ -219,19 +219,19 @@ public class URLShortner {
                     out.println("Server: Java HTTP Server/Shortner : 1.0");
                     out.println("Date: " + new Date());
                     out.println("Content-type: text/html");
-                    out.println("Content-length: 42");
+                    out.println("Content-length: 53");
                     out.println();
-                    out.flush();
                     out.println(REDIRECT_RECORDED_HTML);
+                    out.flush();
                   } else {
                     out.println("HTTP/1.1 500 Internal Server Error");
                     out.println("Server: Java HTTP Server/Shortner : 1.0");
                     out.println("Date: " + new Date());
                     out.println("Content-type: text/html");
-                    out.println("Content-length: 56");
+                    out.println("Content-length: 67");
                     out.println();
-                    out.flush();
                     out.println(INTERNAL_SERVER_ERROR_HTML);
+                    out.flush();
                   }
                 }
               }
@@ -249,7 +249,7 @@ public class URLShortner {
                   out.println("Server: Java HTTP Server/Shortner : 1.0");
                   out.println("Date: " + new Date());
                   out.println("Content-type: text/html");
-                  out.println("Content-length: 99");
+                  out.println("Content-length: 120");
                   out.println();
                   out.println(REDIRECT_HTML);
                   out.flush();
@@ -258,7 +258,7 @@ public class URLShortner {
                   out.println("Server: Java HTTP Server/Shortner : 1.0");
                   out.println("Date: " + new Date());
                   out.println("Content-type: text/html");
-                  out.println("Content-length: 44");
+                  out.println("Content-length: 55");
                   out.println();
                   out.println(FILE_NOT_FOUND_HTML);
                   out.flush();
