@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class DistributePairs implements Runnable {
-    private final String dbURL;
     DB db;
     URLHash urlHash;
     HashMap<Integer, ManifestEntry> manifestEntries;
@@ -19,7 +18,6 @@ public class DistributePairs implements Runnable {
 
     public DistributePairs(DB db, String dbURL, HashMap<Integer, ManifestEntry> manifestEntries){
         this.db = db;
-        this.dbURL = dbURL;
         this.manifestEntries = manifestEntries;
         this.urlHash = new URLHash(this.manifestEntries.size());
     }
@@ -28,9 +26,7 @@ public class DistributePairs implements Runnable {
         ArrayList<Row> dbDump = db.read();
         
         // iterate through dump
-        for(int i = 0; i < dbDump.size(); i++){
-            Row row = dbDump.get(i);
-
+        for (Row row : dbDump) {
             int partitionNum = this.urlHash.hashDJB2(row.getShortURL());
 
             // determine which nodes to send to by checking manifest which is updated by URLShortener            
@@ -53,14 +49,28 @@ public class DistributePairs implements Runnable {
                 BufferedReader node1Reader = new BufferedReader(new InputStreamReader(socketNode1.getInputStream()));
 
                 node1Writer.write(requestString, 0, requestString.length());
-                String line = null;
+                String line = node1Reader.readLine();
 
-                line = node1Reader.readLine();
+                String[] lineMap = line.split(" ");
 
-                if (!line.equals("200")) {
-                    this.success = false;
+                if (!lineMap[1].startsWith("200")) {
+
                     System.out.println("COPY request to node 1 failed.");
-                    // TODO replace with a log file
+                    Thread.sleep(100);
+
+                    socketNode1 = new Socket(hostnameNode1, portNode1);
+
+                    node1Writer = new BufferedWriter(new OutputStreamWriter(socketNode1.getOutputStream()));
+                    node1Reader = new BufferedReader(new InputStreamReader(socketNode1.getInputStream()));
+
+                    node1Writer.write(requestString, 0, requestString.length());
+                    line = node1Reader.readLine();
+                    lineMap = line.split(" ");
+                    if (!lineMap[1].startsWith("200")) {
+                        this.success = false;
+                        System.out.println("COPY request to node 1 failed twice.");
+                    }
+                    socketNode1.close();
                 }
 
 
@@ -71,13 +81,29 @@ public class DistributePairs implements Runnable {
 
                 node2Writer.write(requestString, 0, requestString.length());
                 line = node2Reader.readLine();
+                lineMap = line.split(" ");
 
-                if (!line.equals("200")){
+                if (!lineMap[1].startsWith("200")) {
                     this.success = false;
                     System.out.println("COPY request to node 2 failed.");
-                    // TODO replace with a log file
+
+                    Thread.sleep(100);
+                    // retry
+                    socketNode2 = new Socket(hostnameNode2, portNode2);
+
+                    node2Writer = new BufferedWriter(new OutputStreamWriter(socketNode2.getOutputStream()));
+                    node2Reader = new BufferedReader(new InputStreamReader(socketNode2.getInputStream()));
+
+                    node2Writer.write(requestString, 0, requestString.length());
+                    line = node2Reader.readLine();
+                    lineMap = line.split(" ");
+                    if (!lineMap[1].startsWith("200")) {
+                        this.success = false;
+                        System.out.println("COPY request to node 2 failed twice.");
+                    }
+                    socketNode2.close();
                 }
-            } catch (IOException e) {
+            } catch (IOException | InterruptedException e) {
                 this.success = false;
                 e.printStackTrace();
             }

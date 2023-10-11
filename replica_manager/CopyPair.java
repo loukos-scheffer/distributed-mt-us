@@ -64,6 +64,7 @@ public class CopyPair implements Runnable {
                     if (!lineMap[1].startsWith("200")){
                         System.out.println("COPY request to node 2 failed twice.");
                     }
+                    socketNode2.close();
 
                 }
                 try {
@@ -98,6 +99,7 @@ public class CopyPair implements Runnable {
                     if (!lineMap[1].startsWith("200")){
                         System.out.println("COPY request to node 1 failed twice.");
                     }
+                    socketNode1.close();
                 }
 
                 try {
