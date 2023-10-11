@@ -6,7 +6,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
+import java.util.*;
+
 import utils.Row;
 
 public class DB {
@@ -45,35 +46,13 @@ public class DB {
       Statement stmt = conn.createStatement();
       stmt.executeUpdate(sql);
 
-      // check to see if key is already in the DB
-      boolean inDB = false;
-      String checkSQL =
-        "SELECT shortURL, longURL FROM urls where shortURL = (?)";
-      PreparedStatement ps = conn.prepareStatement(checkSQL);
+      String updateSQL =
+        "INSERT OR REPLACE INTO urls(shortURL, longURL) VALUES (?, ?);";
+      PreparedStatement ps = conn.prepareStatement(updateSQL);
       ps.setString(1, shortURL);
-      ResultSet rs = ps.executeQuery();
-      if (rs.next()) {
-        inDB = true;
-      }
+      ps.setString(2, longURL);
+      ps.execute();
 
-      // if its not then add it
-      if (!inDB) {
-        String insertSQL = "INSERT INTO urls (shortURL, longURL) VALUES (?, ?)";
-        ps = conn.prepareStatement(insertSQL);
-        ps.setString(1, shortURL);
-        ps.setString(2, longURL);
-        ps.execute();
-      }
-      // if it is then update the
-      else {
-        String updateSQL =
-          "UPDATE urls SET shortURL = (?), longURL = (?) WHERE shortURL = (?);";
-        ps = conn.prepareStatement(updateSQL);
-        ps.setString(1, shortURL);
-        ps.setString(2, longURL);
-        ps.setString(3, shortURL);
-        ps.execute();
-      }
       return true;
     } catch (SQLException e) {
       System.out.println(e.getMessage());
@@ -88,6 +67,54 @@ public class DB {
       }
     }
   }
+
+  public static boolean batch_write(String url, HashMap<String, String> urlsToWrite) {
+    Connection conn = null;
+    try {
+      conn = connect(url);
+      /**
+       pragma locking_mode=EXCLUSIVE;
+       pragma mmap_size = 30000000000;
+       pragma temp_store = memory;
+       **/
+      String sql =
+              """
+                       pragma journal_mode = WAL;
+                      pragma synchronous = normal;
+                  """;
+      Statement stmt = conn.createStatement();
+      stmt.executeUpdate(sql);
+
+      Set<String> urlKeySet = urlsToWrite.keySet();
+      PreparedStatement ps;
+
+      for (String shortURL : urlKeySet) {
+        String longURL = urlsToWrite.get(shortURL);
+        String updateSQL =
+                "INSERT OR REPLACE INTO urls(shortURL, longURL) VALUES (?, ?);";
+        ps = conn.prepareStatement(updateSQL);
+        ps.setString(1, shortURL);
+        ps.setString(2, longURL);
+        ps.addBatch();
+        ps.clearParameters();
+      }
+      ps.execute();
+
+      return true;
+    } catch (SQLException e) {
+      System.out.println(e.getMessage());
+      return false;
+    } finally {
+      try {
+        if (conn != null) {
+          conn.close();
+        }
+      } catch (SQLException ex) {
+        System.out.println(ex.getMessage());
+      }
+    }
+  }
+
   public static ArrayList<Row> read(String url) {
 		ArrayList<Row> dump = new ArrayList<Row>();
 		try (Connection conn = connect(url)) {
