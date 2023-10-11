@@ -46,9 +46,10 @@ public class CopyPair implements Runnable {
                 node2Writer.write(requestString, 0, requestString.length());
                 node2Writer.flush();
                 String line = node2Reader.readLine();
+                String[] lineMap = line.split(" ");
                 System.out.println("IN COPYPAIR" + line);
 
-                if (!line.startsWith("200")){
+                if (!lineMap[1].startsWith("200")){
                     System.out.println("COPY request to node 2 failed.");
                     Thread.sleep(100);
                     // retry
@@ -59,7 +60,8 @@ public class CopyPair implements Runnable {
 
                     node2Writer.write(requestString, 0, requestString.length());
                     line = node2Reader.readLine();
-                    if (!line.equals("200")){
+                    lineMap = line.split(" ");
+                    if (!lineMap[1].startsWith("200")){
                         System.out.println("COPY request to node 2 failed twice.");
                     }
 
@@ -73,7 +75,9 @@ public class CopyPair implements Runnable {
 
                 node1Writer.write(requestString, 0, requestString.length());
                 String line = node1Reader.readLine();
-                if (!line.startsWith("200")){
+                String[] lineMap = line.split(" ");
+
+                if (!lineMap[1].startsWith("200")){
                     System.out.println("COPY request to node 1 failed.");
                     Thread.sleep(100);
                     // retry on failure
@@ -85,7 +89,8 @@ public class CopyPair implements Runnable {
 
                     node1Writer.write(requestString, 0, requestString.length());
                     line = node1Reader.readLine();
-                    if (!line.equals("200")){
+                    lineMap = line.split(" ");
+                    if (!lineMap[1].startsWith("200")){
                         System.out.println("COPY request to node 1 failed twice.");
                     }
                 }
