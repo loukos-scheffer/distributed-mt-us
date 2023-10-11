@@ -1,23 +1,27 @@
 #!/bin/bash
 PROJECT_ROOT="`pwd`/../"
-cd $PROJECT_ROOT
 
-mkdir -p out
+mkdir -p /virtual/$USER/out/
 rm /virtual/$USER/out/*
 
-truncate -s 0 config/allhosts
+
+if [ -f "$PROJECT_ROOT/config/allhosts" ];
+then 
+    rm "$PROJECT_ROOT/config/allhosts"
+fi
+touch "$PROJECT_ROOT/config/allhosts"
 
 
 # Start up the URL shortening service on each of the nodes
-for host in `cat config/hosts`
+for host in `cat $PROJECT_ROOT/config/hosts`
 do 
     readarray -d : -t info <<< $host
     echo "Starting URLShortener service on ${info[0]}:${info[1]}";
-    ssh "${info[0]}" "cd \"$PROJECT_ROOT\"; cd orchestration; ./startServiceLocal ${info[1]}" > "/virtual/$USER/out/${info[0]}.out" &
+    ssh "${info[0]}" "cd $PWD; ./startServiceLocal ${info[1]}" 1> "/virtual/$USER/out/${info[0]}.out" 2> "/virtual/$USER/out/${info[0]}.err" &
 done
-cat config/hosts >> config/allhosts
+cat "$PROJECT_ROOT/config/hosts" >> "$PROJECT_ROOT/config/allhosts"
 
 (sleep 3; echo "INIT" | nc -q 0 localhost 8081) &
 
 cd $PROJECT_ROOT
-java load_balancer/ProxyServer 2> "$PROJECT_ROOT/log/error.txt"
+java "load_balancer/ProxyServer" 2> "$PROJECT_ROOT/log/error.txt"

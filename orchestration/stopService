@@ -1,8 +1,10 @@
 #!/bin/bash
 
 PROJECT_ROOT="`pwd`/../"
+
+
 # Close the url shortener service on all hosts
-for host in `cat ../config/allhosts`
+for host in `cat $PROJECT_ROOT/config/allhosts`
 do 
     readarray -d : -t info <<< $host
     echo "Killing URLShortener service on ${info[0]}:${info[1]}"

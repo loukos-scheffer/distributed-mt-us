@@ -1,0 +1,7 @@
+#!/bin/bash
+
+for nrequests in 100 400 800 1600 4000
+do 
+    RESULT=`ab -n $nrequests -c 4 -u put1.data "http://localhost:8080/?short=K0OZ10951G56LZY88BPT&long=http://JGXT1XUALZM5NWREQK4JSU0GFV8KQ4INEKXUXR99FWRUG4NG69JIHAA4C1O5XPRI6JGOXQAMCXNQPYWL546FG8UVD8MPKST9UOBE" | grep -E 'Requests per second|Time taken for tests'`
+    echo $RESULT
+done 

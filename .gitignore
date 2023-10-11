@@ -11,3 +11,5 @@ log/
 config/
 plotting/
 out/
+
+performanceTesting/results/

@@ -172,12 +172,11 @@ public class ForwardingData{
 
         // Test the connection to the target 
 
-        // try {
-        //     connectionPool.createConnectionPool(hostname + ":" + portnum);
-        // } catch (IOException e) {
-        //     return -1;
-        // }
-
+        try {
+            Socket server = new Socket(hostname, portnum);
+        } catch (IOException e) {
+            return -1;
+        }
         if (should_standby) {
             standby.add(hostname + ":" + portnum);
         } else {
@@ -210,18 +209,15 @@ public class ForwardingData{
             } 
             replacement = standby.pollFirst();
             targets.set(removeIndex, replacement);
+            // Partitions are assigned without intervention, and pairs get rehashed
+            assignPartitions();
+            rehashPairs();
         } else {
             targets.remove(targetName);
             numPartitions -= 1;
             updateRequestHash(numPartitions);
         }
 
-        // close the connections to the dead target
-        // try {
-        //     connectionPool.destroyConnectionPool(targetName);
-        // } catch (IOException e) {}
-
-        
         return 0;
     }
     
@@ -236,10 +232,8 @@ public class ForwardingData{
     }
 
     public String getFromCache(String request) {
-        if (cache.get(request) == null) {
-            return null;
-        }
-        return cache.get(request);
+        String response = cache.get(request);
+        return response;
     }
 
     public void cacheRequest(String request, String response) {

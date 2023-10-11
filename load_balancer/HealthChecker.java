@@ -42,7 +42,6 @@ public class HealthChecker implements Runnable {
 
                 for (String targetName: fd.getTargets()) {
                     isUnresponsive=false;
-                    System.out.println("Target Name " + targetName);
                     targetInfo = targetName.split(":", 2);
                     hostname = targetInfo[0];
                     portnum = Integer.parseInt(targetInfo[1]);

@@ -3,13 +3,16 @@ package load_balancer;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.*;
 
 
 import load_balancer.*;
 
 public class CacheWithExpiry{
 
-    private Map<String, ArrayList<Object>> map = new ConcurrentHashMap<String, ArrayList<Object>>();
+    private Map<String, String> map = new ConcurrentHashMap<String, String>();
+    private Map<String, Long> timeStamps = new ConcurrentHashMap<String, Long>();
+
     private long expiryInMillis = 3000;
 
     public CacheWithExpiry() {
@@ -17,34 +20,33 @@ public class CacheWithExpiry{
     }
 
     public void initialize() {
-        Thread cleaner = new Thread(new CacheCleaner(map, expiryInMillis));
+        Thread cleaner = new Thread(new CacheCleaner(map, timeStamps, expiryInMillis));
         cleaner.start();    
     }
 
     public void put(String key, String value) {
         long currentTime = new Date().getTime();
-        map.put(key, new ArrayList<Object>(Arrays.asList(value, currentTime)));
+        map.put(key, value);
+        timeStamps.put(key, currentTime);
         return;
     }
 
     public String get(String key) {
-        if (map.get(key) == null) {
-            return null;
-        } 
-        return String.valueOf(map.get(key).get(0));
+        return map.get(key);
     }
-
-
 
 }
 
 class CacheCleaner implements Runnable {
 
-    private final Map<String, ArrayList<Object>> map;
+    private final Map<String, String> map;
+    private final Map<String, Long> timeStamps;
     private final long expiryInMillis;
 
-    public CacheCleaner (Map<String, ArrayList<Object>> map, long expiryInMillis) {
+    public CacheCleaner (Map<String, String> map, Map<String, Long> timeStamps, long expiryInMillis) {
         this.map = map;
+        this.timeStamps = timeStamps;
+
         this.expiryInMillis = expiryInMillis;
     }
 
@@ -59,11 +61,13 @@ class CacheCleaner implements Runnable {
         }
     }
 
+
     private void cleanMap() {
         long currentTime = new Date().getTime();
-        for (String key: map.keySet()) {
-            if (currentTime > ((long) map.get(key).get(1) + expiryInMillis)) {
+        for (String key: timeStamps.keySet()) {
+            if (currentTime > ((long) timeStamps.get(key) + expiryInMillis)) {
                 map.remove(key);
+                timeStamps.remove(key);
             }
         }
     }

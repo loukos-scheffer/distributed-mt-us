@@ -21,14 +21,17 @@ public class TargetRecycler implements Runnable {
         int error;
         for (;;) {
             targetName = fd.pollUnresponsiveTargets();
-            error = fd.removeTarget(targetName, true);
-            if (error == -1) {
-                System.out.format("[CRITICAL] Could not replace target %s with a standby target. %n", targetName);
-                try {
-                    fd.recordUnresponsiveTarget(targetName);
-                    Thread.sleep(5000);
-                } catch (InterruptedException e) {}
+            if (targetName != null) {  
+                error = fd.removeTarget(targetName, true);
+                if (error == -1) {
+                    System.out.format("[CRITICAL] Could not replace target %s with a standby target. %n", targetName);
+                    try {
+                        fd.recordUnresponsiveTarget(targetName);
+                        Thread.sleep(5000);
+                    } catch (InterruptedException e) {}
+                }
             }
+            
         }
     }
 

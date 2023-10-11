@@ -48,7 +48,7 @@ public class RequestHandler implements Runnable {
 
             
             String requestHead = null;
-
+            
             try (InputStream in = new ByteArrayInputStream(request);
                  BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
                 requestHead = reader.readLine();
@@ -94,14 +94,21 @@ public class RequestHandler implements Runnable {
                 if (cachedResponse != null) {
                     try {
                         PrintWriter streamToClient = new PrintWriter(client.getOutputStream());
+
                         streamToClient.print(cachedResponse);
                         streamToClient.flush();
                         md.recordCacheHit();
                         log.format("Serviced %s from cache %n", requestHead);
+
                     } catch (IOException e) {
                         System.err.format("Could not return response to client from cache");
+                    } finally {
+                        try {
+                            client.close();
+                        } catch (IOException e) {}
+                        return;
                     }
-                    return;
+                    
                 }
 
             }
@@ -118,7 +125,6 @@ public class RequestHandler implements Runnable {
             }
 	    
             try {
-                
                 server = new Socket(hostname, portnum); 
             } catch (IOException e){
                 System.err.format("Unable to establish connection with %s %n", hostname);
@@ -129,6 +135,7 @@ public class RequestHandler implements Runnable {
             
            
              // One thread to forward the request to the server
+
             Thread forward = new Thread(new WriteToServer(server, request, bytesRead));
             forward.start();
 
@@ -157,9 +164,12 @@ class WriteToServer implements Runnable {
 
         try {
             BufferedOutputStream streamToServer = new BufferedOutputStream(server.getOutputStream());
+            
             streamToServer.write(request, 0, bytesRead);
             streamToServer.flush();
-        } catch (IOException e) {}
+        } catch (IOException e) {
+            System.err.println(e);
+        }
 
     }
 }
@@ -190,20 +200,25 @@ class ReadFromServer implements Runnable {
     }
 
     public void run() {
-        int bytesResponse;
+        int charsResponse;
         int fileLength;
         char[] response = new char[4096];
-
+        String responseStr = "";
 
         try {
-            BufferedReader streamFromServer = new BufferedReader(new InputStreamReader(server.getInputStream()));
-            
-
-            bytesResponse = streamFromServer.read(response, 0, 4096);
-            
-
+            BufferedReader streamFromServer = new BufferedReader( new InputStreamReader(server.getInputStream()));
             PrintWriter streamToClient = new PrintWriter(client.getOutputStream());
-            streamToClient.write(response);
+            String line;
+            while ( (line = streamFromServer.readLine()) != null) {
+                responseStr += line;
+                if (line.endsWith("</html>")) { // we should not read non utf-8 bytes
+                    responseStr += "\r\n";
+                    break;
+                }
+                responseStr += "\n";
+            }
+
+            streamToClient.print(responseStr);
             streamToClient.flush();
         } catch (SocketTimeoutException e) {
 
@@ -215,11 +230,10 @@ class ReadFromServer implements Runnable {
         }
 
         if (isCacheable) {
-            fd.cacheRequest(shortResource, String.valueOf(response));
+            fd.cacheRequest(shortResource, responseStr);
         }
 
         try {
-            
             server.close();
             client.close();
         } catch (IOException e) {
