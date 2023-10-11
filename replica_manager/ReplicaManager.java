@@ -25,7 +25,7 @@ public class ReplicaManager {
         this.workers = Executors.newFixedThreadPool(4);
         this.manifestEntries = new ManifestReader().mapManifestEntries();
         this.currentHostname = currentHostname;
-        this.db = new DB();
+        this.db = new DB(dbURL);
         this.dbURL = dbURL;
     }
 
