@@ -142,6 +142,7 @@ public class ForwardingData{
     public void recordUnresponsiveTarget(String targetName) {
         try{
             this.unresponsive.put(targetName);
+            System.out.println(unresponsive);
         } catch (InterruptedException e) {
             return;
         }
@@ -172,11 +173,11 @@ public class ForwardingData{
 
         // Test the connection to the target 
 
-        try {
-            connectionPool.createConnectionPool(hostname + ":" + portnum);
-        } catch (IOException e) {
-            return -1;
-        }
+        // try {
+        //     connectionPool.createConnectionPool(hostname + ":" + portnum);
+        // } catch (IOException e) {
+        //     return -1;
+        // }
 
         if (should_standby) {
             standby.add(hostname + ":" + portnum);
@@ -217,9 +218,9 @@ public class ForwardingData{
         }
 
         // close the connections to the dead target
-        try {
-            connectionPool.destroyConnectionPool(targetName);
-        } catch (IOException e) {}
+        // try {
+        //     connectionPool.destroyConnectionPool(targetName);
+        // } catch (IOException e) {}
 
         
         return 0;

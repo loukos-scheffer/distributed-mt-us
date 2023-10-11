@@ -66,7 +66,7 @@ public class HealthChecker implements Runnable {
                         isUnresponsive = true;                        
                     }
 
-                    if (isUnresponsive) {
+                    if (isUnresponsive & !fd.getUnresponsiveTargets().contains(targetName)) {
                         fd.recordUnresponsiveTarget(targetName);
                     }
 

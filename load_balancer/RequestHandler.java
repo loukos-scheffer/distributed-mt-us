@@ -118,8 +118,8 @@ public class RequestHandler implements Runnable {
             }
 	    
             try {
-                server = fd.connect(targetName);
-                // server = new Socket(hostname, portnum); 
+                
+                server = new Socket(hostname, portnum); 
             } catch (IOException e){
                 System.err.format("Unable to establish connection with %s %n", hostname);
                 md.recordFailedRequest(targetName);
@@ -199,7 +199,7 @@ class ReadFromServer implements Runnable {
             BufferedReader streamFromServer = new BufferedReader(new InputStreamReader(server.getInputStream()));
             
 
-            bytesResponse = streamFromServer.read(response, 0, 2048);
+            bytesResponse = streamFromServer.read(response, 0, 4096);
             
 
             PrintWriter streamToClient = new PrintWriter(client.getOutputStream());
@@ -219,8 +219,9 @@ class ReadFromServer implements Runnable {
         }
 
         try {
-            fd.closeConnection(targetName, server);
-            // server.close();
+            
+            server.close();
+            client.close();
         } catch (IOException e) {
             System.err.println(e);
         }

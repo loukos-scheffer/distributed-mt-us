@@ -25,6 +25,7 @@ public class TargetRecycler implements Runnable {
             if (error == -1) {
                 System.out.format("[CRITICAL] Could not replace target %s with a standby target. %n", targetName);
                 try {
+                    fd.recordUnresponsiveTarget(targetName);
                     Thread.sleep(5000);
                 } catch (InterruptedException e) {}
             }

@@ -22,7 +22,7 @@ public class ProxyServer {
     private final int poolSize=64;
     private final int numHandlers=32;
     private final int replicationFactor=2;
-    private final boolean useCaching = true;
+    private final boolean useCaching = false;
 
 
 
@@ -217,13 +217,13 @@ class LoadBalancer implements Runnable {
     private ForwardingData fd;
     private MonitoringData md;
 
-    private final ExecutorService pool;
+    // private final ExecutorService pool;
     private final PrintWriter log;
 
     public LoadBalancer(int localPort, int numWorkers, ForwardingData fd, MonitoringData md) 
         throws IOException {
         this.serverSocket = new ServerSocket(localPort);
-        this.pool = Executors.newFixedThreadPool(numWorkers);
+        // this.pool = Executors.newFixedThreadPool(numWorkers);
         this.fd = fd;
         this.md = md;
         this.log = new PrintWriter(new FileWriter("log/traffic_log.txt"), true);
@@ -232,11 +232,11 @@ class LoadBalancer implements Runnable {
     public void run() {
         try {
             for (;;) {
-                pool.execute(new RequestHandler(serverSocket.accept(), fd, md, log));
-
+                Thread t = new Thread(new RequestHandler(serverSocket.accept(), fd, md, log));
+                t.start();
             }
         } catch (IOException e) {
-            pool.shutdown();
+            // pool.shutdown();
             System.err.println(e);
         } 
     }
