@@ -12,7 +12,9 @@ import utils.Row;
 
 public class DB {
 
-  static Connection conn;
+
+  private Connection conn;
+  private String url;
 
   public DB(String url) {
     try {
@@ -29,46 +31,28 @@ public class DB {
                       """;
       Statement stmt = conn.createStatement();
       stmt.executeUpdate(sql);
+      this.url = url;
     }
      catch (SQLException e){
+        System.out.println("connection establishment failed");
         System.out.println(e.getMessage());
      }
+    
   }
 
-  private static Connection connect(String url) {
-    conn = null;
+  private Connection connect(String url) {
     try {
-      conn = DriverManager.getConnection(url);
+      return DriverManager.getConnection(url);
     } catch (SQLException e) {
       System.out.println(e.getMessage());
     }
-    return conn;
+    return null;
   }
 
-  public static void main(String[] args) {
-    String url = args[0];
-    write(url, "short.url/abc", "thisisaverylongurl.com/abcdef");
-    read(url);
-    getLongURL(url, "short.url/abc");
-  }
 
-  public static boolean write(String url, String shortURL, String longURL) {
-    Connection conn = null;
+  public boolean write(String shortURL, String longURL) {
+    
     try {
-//      conn = connect(url);
-//      /**
-//				pragma locking_mode=EXCLUSIVE;
-//				pragma mmap_size = 30000000000;
-//				pragma temp_store = memory;
-//			**/
-//      String sql =
-//        """
-//			 	pragma journal_mode = WAL;
-//				pragma synchronous = normal;
-//			""";
-//      Statement stmt = conn.createStatement();
-//      stmt.executeUpdate(sql);
-
       String updateSQL =
         "INSERT OR REPLACE INTO urls(shortURL, longURL) VALUES (?, ?);";
       PreparedStatement ps = conn.prepareStatement(updateSQL);
@@ -78,38 +62,27 @@ public class DB {
 
       return true;
     } catch (SQLException e) {
-      System.out.println(e.getMessage());
+      System.out.println("SQLException");
+      e.printStackTrace();
 	  return false;
     } finally {
-      try {
-        if (conn != null) {
-          conn.close();
-        }
-      } catch (SQLException ex) {
-        System.out.println(ex.getMessage());
-      }
+      // try {
+      //   if (conn != null) {
+      //     conn.close();
+      //   }
+      // } catch (SQLException ex) {
+      //   System.out.println(ex.getMessage());
+      // }
     }
   }
 
-  public static boolean batch_write(String url, HashMap<String, String> urlsToWrite) {
-    Connection conn = null;
+  public boolean batch_write(HashMap<String, String> urlsToWrite) {
+    
     try {
-//      conn = connect(url);
-//      /**
-//       pragma locking_mode=EXCLUSIVE;
-//       pragma mmap_size = 30000000000;
-//       pragma temp_store = memory;
-//       **/
-//      String sql =
-//              """
-//                       pragma journal_mode = WAL;
-//                      pragma synchronous = normal;
-//                  """;
-//      Statement stmt = conn.createStatement();
-//      stmt.executeUpdate(sql);
+
 
       Set<String> urlKeySet = urlsToWrite.keySet();
-      PreparedStatement ps;
+      PreparedStatement ps = null;
 
       for (String shortURL : urlKeySet) {
         String longURL = urlsToWrite.get(shortURL);
@@ -138,9 +111,11 @@ public class DB {
     }
   }
 
-  public static ArrayList<Row> read(String url) {
+  public ArrayList<Row> read() {
 		ArrayList<Row> dump = new ArrayList<Row>();
+    
 		try {
+      
 			Statement stmt  = conn.createStatement();
 			String sql = "SELECT shortURL, longURL FROM urls;";
 			ResultSet rs = stmt.executeQuery(sql);
@@ -153,6 +128,7 @@ public class DB {
 			System.out.println(count);
       System.out.println(dump.size());
 		} catch (SQLException e) {
+      System.out.println(conn);
 			System.out.println(e.getMessage());
       return null;
     }
@@ -160,10 +136,10 @@ public class DB {
 
 	}
 
-  public static String[] getLongURL(String DBurl, String queryURL) {
-//    Connection conn = null;
+  public String[] getLongURL(String queryURL) {
+    
     try {
-//      conn = connect(DBurl);
+      
       Statement stmt = conn.createStatement();
       String sql = "SELECT shortURL, longURL FROM urls where shortURL = (?);";
       PreparedStatement ps = conn.prepareStatement(sql);
@@ -184,13 +160,7 @@ public class DB {
       if (count > 1) {
         System.out.println("multiple matching shortURLs in DB");
       }
-      try {
-        if (conn != null) {
-          conn.close();
-        }
-      } catch (SQLException ex) {
-        System.out.println(ex.getMessage());
-      }
+
       return pairing;
     } catch (SQLException e) {
       System.out.println(e.getMessage());
@@ -198,10 +168,11 @@ public class DB {
     }
   }
 
-  public static void delete(String DBurl, String queryURL) {
-//    Connection conn = null;
+  public void delete(String queryURL) {
+    
     try {
-//      conn = connect(DBurl);
+      
+
       Statement stmt = conn.createStatement();
       String insertSQL = "DELETE FROM urls WHERE shortURL = (?);";
       PreparedStatement ps = conn.prepareStatement(insertSQL);

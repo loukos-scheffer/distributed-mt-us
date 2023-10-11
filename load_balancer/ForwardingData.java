@@ -142,7 +142,6 @@ public class ForwardingData{
     public void recordUnresponsiveTarget(String targetName) {
         try{
             this.unresponsive.put(targetName);
-            System.out.println(unresponsive);
         } catch (InterruptedException e) {
             return;
         }

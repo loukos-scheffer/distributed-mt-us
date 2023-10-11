@@ -66,6 +66,11 @@ public class CopyPair implements Runnable {
                     }
 
                 }
+                try {
+                    socketNode2.close();
+                } catch (IOException e) {
+                    System.err.println("Failed to close socket");
+                }
             }
             else if (this.currentHostname.equals(hostnameNode2)){
                 Socket socketNode1 = new Socket(hostnameNode1, portNode1);
@@ -95,11 +100,15 @@ public class CopyPair implements Runnable {
                     }
                 }
 
+                try {
+                    socketNode1.close();
+                } catch (IOException e) {}
+
             } else {
                 System.out.println("did not match either hostname in the manifest.");
             }
         } catch (IOException | InterruptedException e) {
-            e.getMessage();
+            e.printStackTrace();
         }
     }
 }

@@ -58,13 +58,11 @@ public class MonitoringApp implements Runnable {
             totalRequests += successful;
         }
 
-        System.out.format("Health Checks %n");
-        for (String targetName: fd.getUnresponsiveTargets()) {
-            System.out.format("[%s] Health Check Failed%n", targetName);
-        }
+        
 
         for (String targetName: fd.getTargets()) {
-            System.out.format("[%s] Health Check Passed%n", targetName);
+            String status = fd.getUnresponsiveTargets().contains(targetName) ? "FAILED": "PASSED";
+            System.out.format("[%s] Health Check %s%n", targetName, status);
         }
 
         long numCacheHits = md.getNumCacheHits();

@@ -10,7 +10,7 @@ fi
 
 # create the database
 mkdir -p /virtual/$USER
-rm /virtual/$USER/url-$(hostname).db
+rm /virtual/$USER/url-$(hostname).db*
 sqlite3 /virtual/$USER/url-$(hostname).db < $PROJECT_ROOT/javaSQLite/schema.sql
 
 cd $PROJECT_ROOT

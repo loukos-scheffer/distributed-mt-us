@@ -1,16 +1,21 @@
 #!/bin/bash
 PROJECT_ROOT="`pwd`/../"
+cd $PROJECT_ROOT
 
-truncate -s 0 ../config/allhosts
+mkdir -p out
+rm /virtual/$USER/out/*
+
+truncate -s 0 config/allhosts
+
 
 # Start up the URL shortening service on each of the nodes
-for host in `cat ../config/hosts`
+for host in `cat config/hosts`
 do 
     readarray -d : -t info <<< $host
     echo "Starting URLShortener service on ${info[0]}:${info[1]}";
-    ssh "${info[0]}" "cd \"$PROJECT_ROOT\"; cd orchestration; ./startServiceLocal ${info[1]}" > /dev/null &
+    ssh "${info[0]}" "cd \"$PROJECT_ROOT\"; cd orchestration; ./startServiceLocal ${info[1]}" > "/virtual/$USER/out/${info[0]}.out" &
 done
-cat ../config/hosts >> ../config/allhosts
+cat config/hosts >> config/allhosts
 
 (sleep 3; echo "INIT" | nc -q 0 localhost 8081) &
 

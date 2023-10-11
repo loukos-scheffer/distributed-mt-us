@@ -20,7 +20,6 @@ public class ReplicaManager {
 
 
 
-
     public ReplicaManager (String dbURL, String currentHostname) {
         this.workers = Executors.newFixedThreadPool(4);
         this.manifestEntries = new ManifestReader().mapManifestEntries();

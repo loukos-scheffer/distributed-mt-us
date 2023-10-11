@@ -25,7 +25,7 @@ public class DistributePairs implements Runnable {
     }
     
     public void run(){
-        ArrayList<Row> dbDump = db.read(this.dbURL);
+        ArrayList<Row> dbDump = db.read();
         
         // iterate through dump
         for(int i = 0; i < dbDump.size(); i++){

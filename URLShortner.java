@@ -49,7 +49,7 @@ public class URLShortner {
   public static String PARTITION_2_NAME = "part2";
   public static String PARTITION_2_BACKUP_HOST = "http://dh2026pc12:59958/";
 
-  static DB DB = null;
+  static DB db = null;
   static String DB_URL = "jdbc:sqlite:/virtual/daidkara/example.db";
 
   static volatile int consecutive_failures = 0;
@@ -69,7 +69,7 @@ public class URLShortner {
       HOSTNAME = InetAddress.getLocalHost().getHostName();
       HOSTNAMEPORT = HOSTNAME + ":" + PORT;
       replicaManager = new ReplicaManager(DB_URL, HOSTNAME);
-      DB = new DB(DB_URL);
+      db = new DB(DB_URL);
       System.out.println("Attempting to start server on: " + HOSTNAMEPORT);
       ServerSocket serverConnect = new ServerSocket(PORT);
       System.out.println(
@@ -237,6 +237,7 @@ public class URLShortner {
               Matcher mget = pget.matcher(input);
               if (mget.matches()) {
                 String shortResource = mget.group(1);
+                
                 String httpVersion = mget.group(2);
 
                 String longResource = find(shortResource);
@@ -281,7 +282,8 @@ public class URLShortner {
     }
 
     private static String find(String shortURL) {
-      String[] urlPairing = DB.getLongURL(DB_URL, shortURL);
+      String[] urlPairing = db.getLongURL(shortURL);
+      
       if (urlPairing == null) {
         consecutive_failures += 1;
         if(consecutive_failures >= consecutive_failure_limit) {
@@ -299,7 +301,7 @@ public class URLShortner {
     }
 
     private static boolean save(String shortURL, String longURL) {
-      boolean saved = DB.write(DB_URL, shortURL, longURL);
+      boolean saved = db.write(shortURL, longURL);
       if (saved == false) {
         consecutive_failures += 1;
         if(consecutive_failures >= consecutive_failure_limit) {

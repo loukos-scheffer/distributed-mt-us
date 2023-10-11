@@ -4,6 +4,4 @@
 cat getURLS | parallel 'ab -c 2 -n 2000 {}'
 
 
-
-
 # Merge the results into a single plot 
