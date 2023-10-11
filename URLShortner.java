@@ -69,7 +69,7 @@ public class URLShortner {
       HOSTNAME = InetAddress.getLocalHost().getHostName();
       HOSTNAMEPORT = HOSTNAME + ":" + PORT;
       replicaManager = new ReplicaManager(DB_URL, HOSTNAME);
-      DB = new DB();
+      DB = new DB(DB_URL);
       System.out.println("Attempting to start server on: " + HOSTNAMEPORT);
       ServerSocket serverConnect = new ServerSocket(PORT);
       System.out.println(
