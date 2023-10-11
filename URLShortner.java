@@ -53,7 +53,7 @@ public class URLShortner {
   static String DB_URL = "jdbc:sqlite:/virtual/daidkara/example.db";
 
   static volatile int consecutive_failures = 0;
-  static final int consecutive_failure_limit = 10;
+  static final int consecutive_failure_limit = 10000000;
 
   // verbose mode
   static final boolean verbose = true;
@@ -78,12 +78,7 @@ public class URLShortner {
         " ...\n"
       );
       System.out.println("Reading Parition Information from manifest...");
-      // boolean readSuccess = updateFromManifest();
-      // if (readSuccess) {
-      //   System.out.println("Sucessfully read partition information");
-      // } else {
-      //   System.out.println("FAILED TO READ MANIFEST");
-      // }
+
       // we listen until user halts server execution
       while (true) {
         if (verbose) {
@@ -128,9 +123,6 @@ public class URLShortner {
       PrintWriter out = null;
       BufferedOutputStream dataOut = null;
 
-
-
-
       try {
         in =
           new BufferedReader(new InputStreamReader(connect.getInputStream()));
@@ -140,8 +132,7 @@ public class URLShortner {
         String input;
 
       
-        while ((line = in.readLine()) != null) {
-          if (isRequestHeader(line)) {
+            line = in.readLine();
             input = line;
             if (verbose) System.out.println("first line: " + input);
 
@@ -205,7 +196,7 @@ public class URLShortner {
                   out.println("Content-type: text/html");
                   out.println("Content-length: 63");
                   out.println();
-                  out.println(BAD_REQUEST_HTML);
+                  out.print(BAD_REQUEST_HTML);
                   out.flush();
               } else {
                 if (!replicaManager.replicate(input.getBytes())){
@@ -216,7 +207,7 @@ public class URLShortner {
                   out.println("Content-type: text/html");
                   out.println("Content-length: 67");
                   out.println();
-                  out.println(INTERNAL_SERVER_ERROR_HTML);
+                  out.print(INTERNAL_SERVER_ERROR_HTML);
                   out.flush();
                 }else {
                   boolean saved = save(shortResource, longResource);
@@ -227,7 +218,7 @@ public class URLShortner {
                     out.println("Content-type: text/html");
                     out.println("Content-length: 53");
                     out.println();
-                    out.println(REDIRECT_RECORDED_HTML);
+                    out.print(REDIRECT_RECORDED_HTML);
                     out.flush();
                   } else {
                     out.println("HTTP/1.1 500 Internal Server Error");
@@ -236,7 +227,7 @@ public class URLShortner {
                     out.println("Content-type: text/html");
                     out.println("Content-length: 67");
                     out.println();
-                    out.println(INTERNAL_SERVER_ERROR_HTML);
+                    out.print(INTERNAL_SERVER_ERROR_HTML);
                     out.flush();
                   }
                 }
@@ -257,7 +248,7 @@ public class URLShortner {
                   out.println("Content-type: text/html");
                   out.println("Content-length: 120");
                   out.println();
-                  out.println(REDIRECT_HTML);
+                  out.print(REDIRECT_HTML);
                   out.flush();
                 } else {
                   out.println("HTTP/1.1 404 File Not Found");
@@ -266,13 +257,11 @@ public class URLShortner {
                   out.println("Content-type: text/html");
                   out.println("Content-length: 55");
                   out.println();
-                  out.println(FILE_NOT_FOUND_HTML);
+                  out.print(FILE_NOT_FOUND_HTML);
                   out.flush();
                 }
               }
-            };
-          } 
-      }
+            }
       } catch (Exception e) {
         System.err.println(e);
       } finally {
@@ -323,5 +312,5 @@ public class URLShortner {
       }
       return saved;
     }
-  }
+}
 }
