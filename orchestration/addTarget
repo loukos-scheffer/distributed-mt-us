@@ -9,7 +9,8 @@ if [[ $# -ne 2 ]]; then
     exit 1
 fi
 
-(sleep 1; echo "ADD $1 $2" | nc -q 0 localhost 8081) &
-ssh $1 "cd $PROJECT_ROOT; java URLShortner $2" > 1> "/virtual/$USER/out/$1.out" 2> "/virtual/$USER/out/$1.out" &
+
+ssh $1 "cd $PROJECT_ROOT; java URLShortner $2" 1> "/virtual/$USER/out/$1.out" 2> "/virtual/$USER/out/$1.err" &
+(sleep 1; echo "ADD $1 $2" | nc -q 0 localhost 8081) 
 
 echo "$1:$2" >> config/allhosts
