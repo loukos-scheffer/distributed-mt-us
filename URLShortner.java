@@ -53,7 +53,7 @@ public class URLShortner {
   static String DB_URL = "jdbc:sqlite:/virtual/daidkara/example.db";
 
   static volatile int consecutive_failures = 0;
-  static final int consecutive_failure_limit = 10000000;
+  static final int consecutive_failure_limit = 5;
 
   // verbose mode
   static final boolean verbose = true;

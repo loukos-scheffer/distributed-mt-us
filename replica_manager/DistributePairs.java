@@ -127,6 +127,8 @@ public class DistributePairs implements Runnable {
             }
         }
         // remove pairs from DB if not matching either host.
+        System.out.println(nonMatchingRows);
+        
         db.batch_delete(nonMatchingRows);
     }
     

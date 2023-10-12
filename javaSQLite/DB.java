@@ -66,13 +66,7 @@ public class DB {
       e.printStackTrace();
 	  return false;
     } finally {
-      // try {
-      //   if (conn != null) {
-      //     conn.close();
-      //   }
-      // } catch (SQLException ex) {
-      //   System.out.println(ex.getMessage());
-      // }
+
     }
   }
 
@@ -115,6 +109,9 @@ public class DB {
 
     try {
 
+      if (urlsToDelete.size() == 0){
+        return true;
+      }
 
       PreparedStatement ps = null;
 
@@ -135,15 +132,7 @@ public class DB {
     } catch (SQLException e) {
       System.out.println(e.getMessage());
       return false;
-    } finally {
-      try {
-        if (conn != null) {
-          conn.close();
-        }
-      } catch (SQLException ex) {
-        System.out.println(ex.getMessage());
-      }
-    }
+    } 
   }
 
   public ArrayList<Row> read() {
@@ -207,7 +196,6 @@ public class DB {
     
     try {
       
-
       Statement stmt = conn.createStatement();
       String insertSQL = "DELETE FROM urls WHERE shortURL = (?);";
       PreparedStatement ps = conn.prepareStatement(insertSQL);
@@ -215,14 +203,6 @@ public class DB {
       ps.execute();
     } catch (SQLException e) {
       System.out.println(e.getMessage());
-    } finally {
-      try {
-        if (conn != null) {
-          conn.close();
-        }
-      } catch (SQLException ex) {
-        System.out.println(ex.getMessage());
-      }
-    }
+    } 
   }
 }
