@@ -50,7 +50,7 @@ public class ReplicaManager {
 
     public boolean distribute(){
         this.manifestEntries = new ManifestReader().mapManifestEntries();
-        DistributePairs distributePairs = new DistributePairs(this.db, this.dbURL, this.manifestEntries);
+        DistributePairs distributePairs = new DistributePairs(this.db, this.manifestEntries, this.currentHostname);
 
         workers.execute(distributePairs);
         return distributePairs.success;
