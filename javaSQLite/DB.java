@@ -111,6 +111,41 @@ public class DB {
     }
   }
 
+  public boolean batch_delete(ArrayList<Row> urlsToDelete) {
+
+    try {
+
+
+      PreparedStatement ps = null;
+
+      for (Row row : urlsToDelete) {
+        String shortURL = row.getShortURL();
+        String longURL = row.getLongURL();
+        String updateSQL =
+                "DELETE urls(shortURL, longURL) VALUES (?, ?);";
+        ps = conn.prepareStatement(updateSQL);
+        ps.setString(1, shortURL);
+        ps.setString(2, longURL);
+        ps.addBatch();
+        ps.clearParameters();
+      }
+      ps.execute();
+
+      return true;
+    } catch (SQLException e) {
+      System.out.println(e.getMessage());
+      return false;
+    } finally {
+      try {
+        if (conn != null) {
+          conn.close();
+        }
+      } catch (SQLException ex) {
+        System.out.println(ex.getMessage());
+      }
+    }
+  }
+
   public ArrayList<Row> read() {
 		ArrayList<Row> dump = new ArrayList<Row>();
     
