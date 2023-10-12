@@ -14,7 +14,6 @@ rm /virtual/$USER/url-$(hostname).db*
 sqlite3 /virtual/$USER/url-$(hostname).db < $PROJECT_ROOT/javaSQLite/schema.sql
 
 cd $PROJECT_ROOT
-
 java -classpath ".:javaSQLite/sqlite-jdbc-3.39.3.0.jar" URLShortner.java $1 jdbc:sqlite:/virtual/$USER/url-$(hostname).db
 
 

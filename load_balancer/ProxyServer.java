@@ -180,8 +180,7 @@ public class ProxyServer {
                                 out.format("Could not connect to target %s %n", hostname);
                             } else {
                                 out.format("Added target %s on standby %n", hostname);
-                                fd.assignPartitions();
-                                fd.rehashPairs();
+                                // partition assignment and rehashing is done when the standby is brought into service
                             }
                         } else if (ap.STOP.matcher(cmd).matches()) {
                             out.println("Stopping service");
@@ -217,13 +216,11 @@ class LoadBalancer implements Runnable {
     private ForwardingData fd;
     private MonitoringData md;
 
-    // private final ExecutorService pool;
     private final PrintWriter log;
 
     public LoadBalancer(int localPort, int numWorkers, ForwardingData fd, MonitoringData md) 
         throws IOException {
         this.serverSocket = new ServerSocket(localPort);
-        // this.pool = Executors.newFixedThreadPool(numWorkers);
         this.fd = fd;
         this.md = md;
         this.log = new PrintWriter(new FileWriter("log/traffic_log.txt"), true);
@@ -236,7 +233,6 @@ class LoadBalancer implements Runnable {
                 t.start();
             }
         } catch (IOException e) {
-            // pool.shutdown();
             System.err.println(e);
         } 
     }

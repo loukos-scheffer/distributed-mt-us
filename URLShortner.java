@@ -184,21 +184,6 @@ public class URLShortner {
               String longResource = mput.group(2);
               String httpVersion = mput.group(3);
 
-              if (
-                shortResource == null ||
-                shortResource.isEmpty() ||
-                longResource == null ||
-                longResource.isEmpty()
-              ) {
-                  out.println("HTTP/1.1 400 BAD REQUEST");
-                  out.println("Server: Java HTTP Server/Shortner : 1.0");
-                  out.println("Date: " + new Date());
-                  out.println("Content-type: text/html");
-                  out.println("Content-length: 63");
-                  out.println();
-                  out.print(BAD_REQUEST_HTML);
-                  out.flush();
-              } else {
                 if (!replicaManager.replicate(input.getBytes())){
                 
                   out.println("HTTP/1.1 500 Internal Server Error");
@@ -216,7 +201,7 @@ public class URLShortner {
                     out.println("Server: Java HTTP Server/Shortner : 1.0");
                     out.println("Date: " + new Date());
                     out.println("Content-type: text/html");
-                    out.println("Content-length: 53");
+                    out.println("Content-length: 52");
                     out.println();
                     out.print(REDIRECT_RECORDED_HTML);
                     out.flush();
@@ -231,7 +216,7 @@ public class URLShortner {
                     out.flush();
                   }
                 }
-              }
+              
             } else {
               Pattern pget = Pattern.compile("^GET\\s+/(\\S+)\\s+(\\S+)$");
               Matcher mget = pget.matcher(input);
@@ -247,7 +232,7 @@ public class URLShortner {
                   out.println("Server: Java HTTP Server/Shortner : 1.0");
                   out.println("Date: " + new Date());
                   out.println("Content-type: text/html");
-                  out.println("Content-length: 120");
+                  out.println("Content-length: 119");
                   out.println();
                   out.print(REDIRECT_HTML);
                   out.flush();
@@ -256,13 +241,23 @@ public class URLShortner {
                   out.println("Server: Java HTTP Server/Shortner : 1.0");
                   out.println("Date: " + new Date());
                   out.println("Content-type: text/html");
-                  out.println("Content-length: 55");
+                  out.println("Content-length: 54");
                   out.println();
                   out.print(FILE_NOT_FOUND_HTML);
                   out.flush();
+
                 }
+              } else {
+                out.println("HTTP/1.1 400 BAD REQUEST");
+                out.println("Server: Java HTTP Server/Shortner : 1.0");
+                out.println("Date: " + new Date());
+                out.println("Content-type: text/html");
+                out.println("Content-length: 62");
+                out.println();
+                out.print(BAD_REQUEST_HTML);
+                out.flush();
               }
-            }
+            } 
       } catch (Exception e) {
         System.err.println(e);
       } finally {

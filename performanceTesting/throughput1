@@ -1,0 +1,9 @@
+#!/bin/bash
+
+
+for nrequests in 100 400 800 1600 4000
+do 
+    RESULT=`ab -n $nrequests -c 4 "http://localhost:8080/http://zyz.bit.ly" | grep -E 'Requests per second|Time taken for tests'`
+    echo $RESULT
+    sleep 8;
+done 
