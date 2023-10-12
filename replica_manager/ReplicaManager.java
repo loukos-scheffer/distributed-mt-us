@@ -17,11 +17,12 @@ public class ReplicaManager {
     private final String dbURL;
     private static HashMap<Integer, ManifestEntry> manifestEntries;
     DB db = null;
+    private int NUM_THREADS = 4;
 
 
 
     public ReplicaManager (String dbURL, String currentHostname) {
-        this.workers = Executors.newFixedThreadPool(4);
+        this.workers = Executors.newFixedThreadPool(NUM_THREADS);
         this.manifestEntries = new ManifestReader().mapManifestEntries();
         this.currentHostname = currentHostname;
         this.db = new DB(dbURL);
@@ -50,7 +51,7 @@ public class ReplicaManager {
 
     public boolean distribute(){
         this.manifestEntries = new ManifestReader().mapManifestEntries();
-        DistributePairs distributePairs = new DistributePairs(this.db, this.dbURL, this.manifestEntries);
+        DistributePairs distributePairs = new DistributePairs(this.db, this.manifestEntries, this.currentHostname);
 
         workers.execute(distributePairs);
         return distributePairs.success;
