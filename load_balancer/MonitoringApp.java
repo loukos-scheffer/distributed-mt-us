@@ -48,7 +48,7 @@ public class MonitoringApp implements Runnable {
         long failed;
 
         System.out.format("=== System State at %s ===%n", sdf.format(new Date()));
-        System.out.format("Number of Requests by Target");
+        System.out.println("Number of Requests by Target");
 
 
         for (String targetName: fd.getTargets()) {
@@ -67,7 +67,7 @@ public class MonitoringApp implements Runnable {
 
         long numCacheHits = md.getNumCacheHits();
 
-        System.out.print("Caching");
+        System.out.println("Caching");
         System.out.format("Cache hits=%d%n", numCacheHits);
 
 
