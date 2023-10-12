@@ -28,7 +28,9 @@ public class DistributePairs implements Runnable {
         ArrayList<Row> dbDump = db.read();
         boolean hostmatch = false;
         ArrayList<Row> nonMatchingRows = new ArrayList<Row>();
-        
+        System.out.println("DBDUMP");
+        System.out.println(dbDump);
+
         // iterate through dump
         for (Row row : dbDump) {
             int partitionNum = this.urlHash.hashDJB2(row.getShortURL());
@@ -43,6 +45,9 @@ public class DistributePairs implements Runnable {
             String requestString = String.format("COPY %s %s\n", row.getShortURL(), row.getLongURL());
             String line = null;
             String[] lineMap = null;
+            System.out.println(this.hostname);
+            System.out.println(hostnameNode1);
+            System.out.println(hostnameNode2);
 
             try {
                 if (!this.hostname.equals(hostnameNode2)) {
@@ -55,9 +60,14 @@ public class DistributePairs implements Runnable {
                     BufferedReader node1Reader = new BufferedReader(new InputStreamReader(socketNode1.getInputStream()));
 
                     node1Writer.write(requestString, 0, requestString.length());
+                    node1Writer.flush();
+                    
                     line = node1Reader.readLine();
 
                     lineMap = line.split(" ");
+                    socketNode1.close();
+                    
+                    System.out.println("Response header" + line);
 
                     if (!lineMap[1].startsWith("200")) {
 
@@ -70,6 +80,7 @@ public class DistributePairs implements Runnable {
                         node1Reader = new BufferedReader(new InputStreamReader(socketNode1.getInputStream()));
 
                         node1Writer.write(requestString, 0, requestString.length());
+                        node1Writer.flush();
                         line = node1Reader.readLine();
                         lineMap = line.split(" ");
                         if (!lineMap[1].startsWith("200")) {
@@ -91,8 +102,12 @@ public class DistributePairs implements Runnable {
                     BufferedReader node2Reader = new BufferedReader(new InputStreamReader(socketNode2.getInputStream()));
 
                     node2Writer.write(requestString, 0, requestString.length());
+                    node2Writer.flush();
+                    
                     line = node2Reader.readLine();
+                    System.out.println(line);
                     lineMap = line.split(" ");
+                    socketNode2.close();
 
                     if (!lineMap[1].startsWith("200")) {
                         this.success = false;
@@ -106,6 +121,7 @@ public class DistributePairs implements Runnable {
                         node2Reader = new BufferedReader(new InputStreamReader(socketNode2.getInputStream()));
 
                         node2Writer.write(requestString, 0, requestString.length());
+                        node2Writer.flush();
                         line = node2Reader.readLine();
                         lineMap = line.split(" ");
                         if (!lineMap[1].startsWith("200")) {
@@ -119,6 +135,7 @@ public class DistributePairs implements Runnable {
                 }
 
                 if (!hostmatch){
+                    System.out.println(row);
                     nonMatchingRows.add(row);
                 }
             } catch (IOException | InterruptedException e) {
