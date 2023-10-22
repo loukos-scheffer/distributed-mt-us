@@ -2,9 +2,9 @@
 
 PROJECT_ROOT="`pwd`/../"
 
-cd PROJECT_ROOT
-/orchestration/startService 
-/orchestration/standbyTarget dh2026pc08 8080
-sleep 10; # simulate normal service functioning 
+cd $PROJECT_ROOT/orchestration
+./startService
+./standbyTarget dh2026pc08 8080
+sleep 10;
 
 ssh dh2026pc07 "cd $PROJECT_ROOT; fuser -k -TERM -n tcp 8080;" &
